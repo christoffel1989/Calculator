@@ -84,9 +84,7 @@ std::tuple<Token, std::string> parseToken(std::string input)
 		//刚才吃掉的数字补回去
 		input.insert(input.begin(), ch);
 		result.type = TokenType::Number;
-		tempNum = parseNum(input);
-		result.value = std::get<0>(tempNum);
-		input = std::get<1>(tempNum);
+		std::tie(result.value, input) = parseNum(input);
 		break;
 	default:
 		break;
@@ -98,30 +96,26 @@ std::tuple<Token, std::string> parseToken(std::string input)
 //解析因子
 std::tuple<double, std::string> parseFactor(std::string input)
 {
-	std::tuple<double, std::string> exp;
-	auto tk = parseToken(input);
-	Token value = std::get<0>(tk);
-	double result = 0;
+	using std::tie;
+	double result;
+	Token tk;
+	tie(tk, input) = parseToken(input);
 
-	switch (value.type)
+	switch (tk.type)
 	{
 	case TokenType::Number:
-		result = value.value;
-		input = std::get<1>(tk);
+		result = tk.value;
 		break;
 	case TokenType::Lp:
-		input = std::get<1>(tk);
-		exp = parseExpression(input);
-		result = std::get<0>(exp);
-		input = std::get<1>(exp);
+		//括号中的表达式
+		tie(result, input) = parseExpression(input);
 		//解析右括号
-		tk = parseToken(input);
-		if (std::get<0>(tk).type != TokenType::Rp)
+		tie(tk, input) = parseToken(input);
+		if (tk.type != TokenType::Rp)
 		{
 			//报一个错误
 			throw std::runtime_error("bad syntax: miss a ) !");
 		}
-		input = std::get<1>(exp);
 		break;
 	default:
 		//报一个错误
@@ -135,64 +129,57 @@ std::tuple<double, std::string> parseFactor(std::string input)
 //解析项
 std::tuple<double, std::string> parseTerm(std::string input)
 {
-	//用C++17重写后
-	auto [result, str1] = parseFactor(input);
+	using std::tie;
+	double result, factor;
+	tie(result, input) = parseFactor(input);
 
-	while (1)
+	bool onloop = true;
+	while (onloop)
 	{
-		auto [op, str2] = parseToken(str1);
-		if (op.type == TokenType::Mul)
+		auto [op, str] = parseToken(input);
+		switch (op.type)
 		{
-			auto[factor, str3] = parseFactor(str2);
+		case TokenType::Mul:
+			tie(factor, input) = parseFactor(str);
 			result *= factor;
-			str1 = str3;
-		}
-		else if (op.type == TokenType::Div)
-		{
-			auto[factor, str3] = parseFactor(str2);
+			break;
+		case TokenType::Div:
+			tie(factor, input) = parseFactor(str);
 			if (factor == 0)
 			{
 				throw std::runtime_error("error: divided by zero!");
 			}
 			result /= factor;
-			str1 = str3;
-		}
-		else
-		{
+			break;
+		default:
+			onloop = false;
 			break;
 		}
 	}
 
-	return std::make_tuple(result, str1);
+	return std::make_tuple(result, input);
 }
 
 //解析表达式
 std::tuple<double, std::string> parseExpression(std::string input)
 {
-	auto term = parseTerm(input);
-	double result = std::get<0>(term);
-	input = std::get<1>(term);
+	using std::tie;
+	double result, term;
+	tie(result, input) = parseTerm(input);
 
 	bool onloop = true;
-
 	while (onloop)
 	{
-		auto tk = parseToken(input);
-		Token op = std::get<0>(tk);
-
+		auto [op, str] = parseToken(input);
 		switch (op.type)
 		{
 		case TokenType::Plus:
-			input = std::get<1>(tk);
-			term = parseTerm(input);
-			result += std::get<0>(term);
-			input = std::get<1>(term);
+			tie(term, input) = parseTerm(str);
+			result += term;
 			break;
 		case TokenType::Minus:
-			input = std::get<1>(tk);
-			term = parseTerm(input);
-			result -= std::get<0>(term);
-			input = std::get<1>(term);
+			tie(term, input) = parseTerm(str);
+			result += term;
 			break;
 		default:
 			onloop = false;

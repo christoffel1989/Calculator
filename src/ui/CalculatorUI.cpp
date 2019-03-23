@@ -85,9 +85,8 @@ void CalculatorUI::onKeyButtonClick(int id)
 		try
 		{
 			//把QString 转换成 std::string
-			std::string input = m_ResultStr.toLatin1().data();
-			auto result = parseExpression(input);
-			m_ResultStr = QString::number(std::get<0>(result));
+			auto [result, res] = parseExpression(m_ResultStr.toLatin1().data());
+			m_ResultStr = QString::number(result);
 			m_HasCal = true;
 		}
 		catch (std::exception& e)

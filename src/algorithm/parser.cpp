@@ -7,7 +7,7 @@ std::tuple<double, std::string> parseNum(std::string input)
 
 	// input "12.34a" numstr ""
 	// ch 1 "2.34a" numstr "1"
-	// ch 2 ".34.a" numstr "12"
+	// ch 2 ".34a" numstr "12"
 	// ch . "34a" numstr "12."
 	char ch;
 	std::string numstr;
@@ -37,13 +37,12 @@ std::tuple<double, std::string> parseNum(std::string input)
 		}
 	}
 
-	return std::make_tuple(atof(numstr.c_str()), input);
+	return std::make_tuple(std::stod(numstr), input);
 }
 
 std::tuple<Token, std::string> parseToken(std::string input)
 {
 	char ch;
-	std::tuple<double, std::string> tempNum;
 	Token result;
 	result.type = TokenType::End;
 

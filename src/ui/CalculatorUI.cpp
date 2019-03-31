@@ -4,7 +4,6 @@
 #include <QPushButton>
 #include <QGridLayout>
 #include <QVBoxLayout>
-#include <QButtonGroup>
 
 #include "parser.h"
 
@@ -25,15 +24,14 @@ CalculatorUI::CalculatorUI(QWidget* parent) : QDialog(parent)
 		{ "C", "0", ".", "=" }
 	};
 
-
-	m_pKeyButtonGroup = new QButtonGroup(this);
 	for (int i = 0; i < 5; i++)
 	{
 		for (int j = 0; j < 4; j++)
 		{
 			m_pKeyButton[i][j] = new QPushButton(dict[i][j], this);
-			m_pKeyButtonGroup->addButton(m_pKeyButton[i][j], i * 4 + j);
 			m_KeyMap.insert({ i * 4 + j, dict[i][j].toLatin1().data() });
+			//利用lambda链接消息
+			connect(m_pKeyButton[i][j], &QPushButton::clicked, [=](int id) { onKeyButtonClick(i * 4 + j); });
 		}
 	}
 
@@ -53,7 +51,13 @@ CalculatorUI::CalculatorUI(QWidget* parent) : QDialog(parent)
 
 	setLayout(CenterLayout);
 
-	connect(m_pKeyButtonGroup, SIGNAL(buttonClicked(int)), this, SLOT(onKeyButtonClick(int)));
+	for (int i = 0; i < 5; i++)
+	{
+		for (int j = 0; j < 4; j++)
+		{
+			
+		}
+	}
 }
 
 void CalculatorUI::onKeyButtonClick(int id)

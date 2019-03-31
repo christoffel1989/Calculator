@@ -50,14 +50,6 @@ CalculatorUI::CalculatorUI(QWidget* parent) : QDialog(parent)
 	CenterLayout->addWidget(KeyPannel);
 
 	setLayout(CenterLayout);
-
-	for (int i = 0; i < 5; i++)
-	{
-		for (int j = 0; j < 4; j++)
-		{
-			
-		}
-	}
 }
 
 void CalculatorUI::onKeyButtonClick(int id)

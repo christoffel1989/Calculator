@@ -11,12 +11,10 @@ class QButtonGroup;
 
 class CalculatorUI : public QDialog
 {
-	Q_OBJECT
-
 public:
 	CalculatorUI(QWidget* parent = nullptr);
 
-private slots:
+private:
 	void onKeyButtonClick(int id);
 
 private:

@@ -32,9 +32,6 @@ source_group("Source Files" FILES ${project_main_source_files})
 source_group("Source Files\\algorithm" FILES ${project_algorithm_source_files})
 source_group("Source Files\\ui" FILES ${project_ui_source_files})
 
-QT5_WRAP_CPP(project_ui_moc_source_files ${project_ui_header_files})
-source_group("Generate Files" FILES ${project_ui_moc_source_files})
-
 # Add the include directories for VTK and Qt 5 Widgets module to the compile lines.
 include_directories(${PROJECT_MAIN_DIR}
 					${PROJECT_ALGORITHM_DIR}
@@ -46,8 +43,7 @@ add_executable(${PROJECT_NAME}
 			   ${project_ui_header_files}
 			   ${project_main_source_files}
 			   ${project_algorithm_source_files}
-			   ${project_ui_source_files}
-			   ${project_ui_moc_source_files})
+			   ${project_ui_source_files})
 
 #设定可执行二进制文件的目录
 SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/bin) 

@@ -133,9 +133,11 @@ std::tuple<double, std::string> parseTerm(std::string input)
 	tie(result, input) = parseFactor(input);
 
 	bool onloop = true;
+	Token op;
+	std::string str;
 	while (onloop)
 	{
-		auto [op, str] = parseToken(input);
+		tie(op, str) = parseToken(input);
 		switch (op.type)
 		{
 		case TokenType::Mul:
@@ -167,9 +169,11 @@ std::tuple<double, std::string> parseExpression(std::string input)
 	tie(result, input) = parseTerm(input);
 
 	bool onloop = true;
+	Token op;
+	std::string str;
 	while (onloop)
 	{
-		auto [op, str] = parseToken(input);
+		tie(op, str) = parseToken(input);
 		switch (op.type)
 		{
 		case TokenType::Plus:

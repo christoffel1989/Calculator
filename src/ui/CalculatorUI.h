@@ -2,12 +2,7 @@
 
 #include <QDialog>
 
-#include <map>
-#include <string>
-
-class QPushButton;
 class QLineEdit;
-class QButtonGroup;
 
 class CalculatorUI : public QDialog
 {
@@ -15,16 +10,20 @@ public:
 	CalculatorUI(QWidget* parent = nullptr);
 
 private:
-	void onKeyButtonClick(int id);
+	void onKeyButtonClicked(int row, int column);
 
 private:
-	QPushButton* m_pKeyButton[5][4];
+	QString m_KeyDict[5][4] =
+	{
+		{ "(", ")", "<-", "*" },
+		{ "7", "8", "9", "/" },
+		{ "4", "5", "6", "+" },
+		{ "1", "2", "3", "-" },
+		{ "CE", "0", ".", "=" }
+	};
+
+	QString m_Text;
 	QLineEdit* m_pDisplay;
-	QButtonGroup* m_pKeyButtonGroup;
-
-	std::map<int, std::string> m_KeyMap;
-
-	QString m_ResultStr;
 
 	bool m_HasCal;
 	bool m_HasError;

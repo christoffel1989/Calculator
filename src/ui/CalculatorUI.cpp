@@ -44,18 +44,21 @@ void CalculatorUI::onKeyButtonClicked(int row, int column)
 	//退一格的情况
 	else if (m_KeyDict[row][column] == "<-")
 	{
-		m_Text.remove(m_Text.length() - 1, 1);
-		//如果所有的数字都被删光了就直接重置为0
-		if (m_Text == "")
-		{
-			m_Text = "0";
-		}
-
 		//当前处于计算错误的状态
 		if (m_HasError)
 		{
 			m_HasError = false;
 			m_Text = "0";
+		}
+		//如果是完成计算的情况下 按退格无效
+		else if (!m_HasCal)
+		{
+			m_Text.remove(m_Text.length() - 1, 1);
+			//如果所有的数字都被删光了就直接重置为0
+			if (m_Text == "")
+			{
+				m_Text = "0";
+			}
 		}
 	}
 	//小数点

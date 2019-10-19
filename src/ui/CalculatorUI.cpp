@@ -16,9 +16,9 @@ CalculatorUI::CalculatorUI(QWidget* parent) : QDialog(parent)
 
 	auto pannel = new QWidget(this);
 	auto gridlayout = new QGridLayout(this);
-	for (int i = 0; i < 5; i++)
+	for (int i = 0; i < row; i++)
 	{
-		for (int j = 0; j < 4; j++)
+		for (int j = 0; j < column; j++)
 		{
 			auto button = new QPushButton(m_KeyDict[i][j], this);
 			gridlayout->addWidget(button, i, j);
@@ -126,8 +126,22 @@ void CalculatorUI::onKeyButtonClicked(int row, int column)
 			double result;
 			std::string res;
 			std::tie(result, res) = parseExpression(m_Text.toLatin1().data());
-			m_Text = QString::number(result);
-			m_HasCal = true;
+			//存在残渣
+			if (!res.empty())
+			{
+				m_Text =  "unexpect symbo ( or )!";
+				m_HasError = true;
+			}
+			else
+			{
+				//如果计算出来的数特别小就看作是0
+				if (abs(result) < 1e-10)
+				{
+					result = 0;
+				}
+				m_Text = QString::number(result);
+				m_HasCal = true;
+			}
 		}
 		//出现异常 例如除以0或者括号不平衡 则在屏幕上显示错误信息
 		catch (std::exception& e)

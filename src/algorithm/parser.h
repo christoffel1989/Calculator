@@ -5,8 +5,7 @@
 #include <string>
 #include <tuple>
 
-std::tuple<double, std::string> parseNum(std::string input);
-
+//词法解析
 std::tuple<Token, std::string> parseToken(std::string input);
 
 //解析因子

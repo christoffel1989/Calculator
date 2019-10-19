@@ -2,24 +2,6 @@
 
 #include <stdexcept>
 
-//阶乘函数
-//目前先强制转换为整数运算
-//如果用gamma函数的定义算就没问题了
-double factorial(double value)
-{
-	int count = (int) value;
-	if (count <= 1)
-	{
-		return 1;
-	}
-	int result = 1;
-	for (int i = 2; i <= count; i++)
-	{
-		result *= i;
-	}
-	return result;
-}
-
 std::tuple<double, std::string> parseNum(std::string input)
 {
 
@@ -278,7 +260,8 @@ std::tuple<double, std::string> parseFactor(std::string input)
 	tie(tk, res) = parseToken(input);
 	if (tk.type == TokenType::Fact)
 	{
-		result = factorial(result);
+		//伽马函数是阶乘的推广
+		result = tgamma(result + 1);
 		input = res;
 	}
 

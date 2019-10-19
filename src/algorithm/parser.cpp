@@ -2,6 +2,24 @@
 
 #include <stdexcept>
 
+//阶乘函数
+//目前先强制转换为整数运算
+//如果用gamma函数的定义算就没问题了
+double factorial(double value)
+{
+	int count = (int) value;
+	if (count <= 1)
+	{
+		return 1;
+	}
+	int result = 1;
+	for (int i = 2; i <= count; i++)
+	{
+		result *= i;
+	}
+	return result;
+}
+
 std::tuple<double, std::string> parseNum(std::string input)
 {
 
@@ -94,6 +112,8 @@ std::tuple<Token, std::string> parseToken(std::string input)
 	case '-':
 	case '*':
 	case '/':
+	case '^':
+	case '!':
 	case '(':
 	case ')':
 	case '=':
@@ -253,6 +273,16 @@ std::tuple<double, std::string> parseFactor(std::string input)
 		break;
 	}
 
+	//如果算完后法线后面还跟了一个!号则进行进一步的阶乘
+	std::string res;
+	tie(tk, res) = parseToken(input);
+	if (tk.type == TokenType::Fact)
+	{
+		result = factorial(result);
+		input = res;
+	}
+
+
 	return std::make_tuple(result, input);
 }
 
@@ -282,6 +312,15 @@ std::tuple<double, std::string> parseTerm(std::string input)
 				throw std::runtime_error("error: divided by zero!\n");
 			}
 			result /= factor;
+			break;
+		case TokenType::Pow:
+			tie(factor, input) = parseFactor(str);
+			//当底为0 幂为非正实数时幂操作无效
+			if (result == 0 && factor <= 0)
+			{
+				throw std::runtime_error("error: zero can not be power by non-positive value!\n");
+			}
+			result = pow(result, factor);
 			break;
 		default:
 			onloop = false;

@@ -55,6 +55,6 @@ int consoleVersion(int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
-	//return guiVersion(argc, argv);
-	return consoleVersion(argc, argv);
+	return guiVersion(argc, argv);
+	//return consoleVersion(argc, argv);
 }

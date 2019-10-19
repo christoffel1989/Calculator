@@ -14,6 +14,8 @@ enum TokenType
 	Minus = '-',
 	Mul = '*',
 	Div = '/',
+	Pow = '^',
+	Fact = '!',
 	Lp = '(',
 	Rp = ')',
 	Assign = '=',

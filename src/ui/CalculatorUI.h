@@ -28,13 +28,13 @@ private:
 	static const int column = 5;
 	QString m_KeyDict[row][column] =
 	{
-		{ "sin", "cos", "tan", "PI", "e" },
-		{ "asin", "acos", "atan", "exp", "ln" },
-		{ "inv", "(", ")", "<-", "/" },
-		{ "sqrt", "7", "8", "9", "*" },
-		{ "abs", "4", "5", "6", "-" },
-		{ "log", "1", "2", "3", "+" },
-		{ "exp", "CE", "0", ".", "=" }
+		{ "PI", "sin", "asin", "cos", "acos"},
+		{ "e", "tan", "atan", "log", "ln" },
+		{ "exp", "(", ")", "<-", "/" },
+		{ "inv", "7", "8", "9", "*" },
+		{ "sqrt", "4", "5", "6", "-" },
+		{ "!", "1", "2", "3", "+" },
+		{ "^", "CE", "0", ".", "=" }
 	};
 
 	QString m_Text;

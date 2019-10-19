@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <tuple>
 #include <string>
@@ -23,7 +23,7 @@ enum TokenType
 struct Token
 {
 	TokenType type;
-	//token为数值值时存储的变量
+	//存储token为数值值时的变量
 	double value;
 	//token为字符串值时存储的变量
 	std::string name;

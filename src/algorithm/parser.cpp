@@ -244,7 +244,7 @@ std::tuple<double, std::string> parseFactor(std::string input)
 				break;
 			}
 			//不是赋值符号 抛出一个未定义类型的错误
-			throw std::runtime_error(name + " is an undefine variable or function!\n");
+			throw std::runtime_error(name + " is an undefined symbo!\n");
 		}
 		break;
 	default:

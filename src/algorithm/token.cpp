@@ -68,7 +68,7 @@ bool tokenInit()
 		{
 			throw std::runtime_error("out of sqrt's domain!");
 		}
-		return sqrt(2);
+		return sqrt(val);
 	});
 	registFunction("inv", [](double val)
 	{

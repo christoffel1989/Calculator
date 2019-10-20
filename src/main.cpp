@@ -30,7 +30,7 @@ int consoleVersion(int argc, char* argv[])
 		{
 			try
 			{
-				std::tie(result, res) = parseExpression(input);
+				std::tie(result, res) = parseStatement(input);
 				//如果计算出来的数特别小就看作是0
 				if (abs(result) < 1e-10)
 				{

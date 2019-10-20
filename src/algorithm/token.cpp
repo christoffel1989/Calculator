@@ -96,18 +96,16 @@ bool registVariable(std::string variable, double value)
 }
 
 //获得特定名字的变量的值
-//如果该名字的变量并不存在则返回值的第二个分量为false
-//更好的写法是用std::optional
-std::tuple<double, bool> getVaiableValue(std::string variable)
+std::optional<double> getVaiableValue(std::string variable)
 {
 	//查找
 	auto iter = VariableMap.find(variable);
 	//如果存在
 	if (iter != VariableMap.end())
 	{
-		return std::make_tuple(iter->second, true);
+		return { iter->second };
 	}
-	return std::make_tuple(0, false);
+	return {};
 }
 
 //将新的函数注册到函数表中
@@ -124,17 +122,15 @@ bool registFunction(std::string function, std::function<double(double)> implimen
 }
 
 //获得特定名字的函数的实体
-//如果该名字的函数并不存在则返回值的第二个分量为false
-//更好的写法是用std::optional
-std::tuple<std::function<double(double)>, bool> getFunctionImpliment(std::string variable)
+std::optional<std::function<double(double)>> getFunctionImpliment(std::string variable)
 {
 	//查找
 	auto iter = FunctionMap.find(variable);
 	//如果存在
 	if (iter != FunctionMap.end())
 	{
-		return std::make_tuple(iter->second, true);
+		return { iter->second };
 	}
-	//不存在时返回一个恒返回0的函数
-	return std::make_tuple([](double) { return 0; }, false);
+	//不存在时返回无效值
+	return {};
 }

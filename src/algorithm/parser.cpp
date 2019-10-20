@@ -2,6 +2,18 @@
 
 #include <stdexcept>
 
+//从字符串中解析出第一个数值
+std::tuple<double, std::string> parseNum(std::string input);
+//从字符串中解析出第一个英文单词
+std::tuple<std::string, std::string> parseSymbol(std::string input);
+//词法解析
+std::tuple<Token, std::string> parseToken(std::string input);
+//解析因子
+std::tuple<double, std::string> parseFactor(std::string input);
+//解析项
+std::tuple<double, std::string> parseTerm(std::string input);
+
+
 std::tuple<double, std::string> parseNum(std::string input)
 {
 
@@ -37,7 +49,7 @@ std::tuple<double, std::string> parseNum(std::string input)
 		}
 	}
 
-	return std::make_tuple(std::stod(numstr), input);
+	return { std::stod(numstr), input };
 }
 
 std::tuple<std::string, std::string> parseSymbol(std::string input)
@@ -65,14 +77,14 @@ std::tuple<std::string, std::string> parseSymbol(std::string input)
 		}
 	}
 
-	return std::make_tuple(name, input);
+	return { name, input };
 }
 
 std::tuple<Token, std::string> parseToken(std::string input)
 {
 	char ch;
-	Token result;
-	result.type = TokenType::End;
+	Token tk;
+	tk.type = TokenType::End;
 
 	//把空格去掉
 	do
@@ -80,8 +92,8 @@ std::tuple<Token, std::string> parseToken(std::string input)
 		//先判断一下是否是空
 		if (input.empty())
 		{
-			result.type = TokenType::End;
-			return std::make_tuple(result, "");
+			tk.type = TokenType::End;
+			return { tk, "" };
 		}
 		ch = *input.begin();
 		input.erase(input.begin());
@@ -99,7 +111,7 @@ std::tuple<Token, std::string> parseToken(std::string input)
 	case '(':
 	case ')':
 	case '=':
-		result.type = TokenType(ch);
+		tk.type = TokenType(ch);
 		break;
 	case '0':
 	case '1':
@@ -113,8 +125,8 @@ std::tuple<Token, std::string> parseToken(std::string input)
 	case '9':
 		//刚才吃掉的数字补回去
 		input.insert(input.begin(), ch);
-		result.type = TokenType::Number;
-		std::tie(result.value, input) = parseNum(input);
+		std::tie(tk.value, input) = parseNum(input);
+		tk.type = TokenType::Number;
 		break;
 	default:
 		//字母的情况
@@ -123,17 +135,79 @@ std::tuple<Token, std::string> parseToken(std::string input)
 			//刚才吃掉的字母补回去
 			input.insert(input.begin(), ch);
 			//解析出名字
-			std::tie(result.name, input) = parseSymbol(input);
-			result.type = TokenType::Symbol;
+			std::tie(tk.value, input) = parseSymbol(input);
+			tk.type = TokenType::Symbol;
 		}
 		else
 		{
-			result.type = TokenType::BadType;
+			tk.type = TokenType::BadType;
 		}
 		break;
 	}
 
-	return std::make_tuple(result, input);
+	return { tk, input };
+}
+
+//处理Symbo
+std::tuple<double, std::string> processSymbol(std::string symbol, std::string input)
+{
+	Token tk;
+	double result;
+	//是否在变量表中 如果确实在则break;
+	if (auto v = getVaiableValue(symbol))
+	{
+		result = v.value();
+		//如果后面跟了一个赋值的操作 还需要做进一步的处理
+		std::string res;
+		tie(tk, res) = parseToken(input);
+		if (tk.type == TokenType::Assign)
+		{
+			//获得的赋予的值的大小
+			tie(result, input) = parseExpression(res);
+			//更新该值
+			registVariable(symbol, result);
+		}
+	}
+	//是否在函数表中 如果确实在则break;
+	else if (auto f = getFunctionImpliment(symbol))
+	{
+		//解析左括号
+		tie(tk, input) = parseToken(input);
+		if (tk.type != TokenType::Lp)
+		{
+			//报一个错误
+			throw std::runtime_error("bad syntax: miss a (!\n");
+		}
+		//解析括号中的表达式
+		//括号中的表达式
+		tie(result, input) = parseExpression(input);
+		//解析右括号
+		tie(tk, input) = parseToken(input);
+		if (tk.type != TokenType::Rp)
+		{
+			//报一个错误
+			throw std::runtime_error("bad syntax: miss a )!\n");
+		}
+		//计算函数值
+		result = f.value()(result);
+	}
+	else
+	{
+		//如果Symbo并未定义 则检查下一个符号是否是=号，如果是则注册新的变量为=号后面的值
+		std::string res;
+		tie(tk, res) = parseToken(input);
+		if (tk.type == TokenType::Assign)
+		{
+			//获得的赋予的值的大小
+			tie(result, input) = parseExpression(res);
+			//注册该新变量
+			registVariable(symbol, result);
+		}
+		//不是赋值符号 抛出一个未定义类型的错误
+		throw std::runtime_error(symbol + " is an undefined symbol!\n");
+	}
+
+	return { result, input };
 }
 
 //解析因子
@@ -141,40 +215,23 @@ std::tuple<double, std::string> parseFactor(std::string input)
 {
 	using std::tie;
 	double result;
+	std::string symbol;
 	std::function<double(double)> fun;
-	bool regist;
 	Token tk;
 	tie(tk, input) = parseToken(input);
 
 	switch (tk.type)
 	{
-	//负号
-	case TokenType::Minus:
-		//继续向下解析
-		tie(tk, input) = parseToken(input);
-		//如果是一个数字
-		if (tk.type == TokenType::Number)
-		{
-			result = -tk.value;
-			break;
-		}
-		//如果是一个Symbo
-		if (tk.type == TokenType::Symbol)
-		{
-			//是否在变量表中 如果确实在则break;
-			tie(result, regist) = getVaiableValue(tk.name);
-			if (regist)
-			{
-				result = -result;
-				break;
-			}
-		}
-		//抛出异常
-		throw std::runtime_error("unxepect -!\n");
-		break;
 	//数字
 	case TokenType::Number:
-		result = tk.value;
+		result = std::get<double>(tk.value);
+		break;
+	//负号
+	case TokenType::Minus:
+		//再解析一个Factor
+		std::tie(result, input) = parseFactor(input);
+		//解析出的结果前面添加一个负号
+		result = -result;
 		break;
 	//左括号
 	case TokenType::Lp:
@@ -190,12 +247,12 @@ std::tuple<double, std::string> parseFactor(std::string input)
 		break;
 	//英文符号
 	case TokenType::Symbol:
+		symbol = std::get<std::string>(tk.value);
 		//是否在变量表中 如果确实在则break;
-		tie(result,regist) = getVaiableValue(tk.name);
-		if (regist)
+		if (auto v = getVaiableValue(symbol))
 		{
+			result = v.value();
 			//如果后面跟了一个赋值的操作 还需要做进一步的处理
-			std::string name = tk.name;
 			std::string res;
 			tie(tk, res) = parseToken(input);
 			if (tk.type == TokenType::Assign)
@@ -203,13 +260,11 @@ std::tuple<double, std::string> parseFactor(std::string input)
 				//获得的赋予的值的大小
 				tie(result, input) = parseExpression(res);
 				//更新该值
-				registVariable(name, result);
+				registVariable(symbol, result);
 			}
-			break;
 		}
 		//是否在函数表中 如果确实在则break;
-		tie(fun, regist) = getFunctionImpliment(tk.name);
-		if (regist)
+		else if (auto f = getFunctionImpliment(symbol))
 		{
 			//解析左括号
 			tie(tk, input) = parseToken(input);
@@ -229,12 +284,11 @@ std::tuple<double, std::string> parseFactor(std::string input)
 				throw std::runtime_error("bad syntax: miss a )!\n");
 			}
 			//计算函数值
-			result = fun(result);
-			break;
+			result = f.value()(result);
 		}
+		else
 		{
 			//如果Symbo并未定义 则检查下一个符号是否是=号，如果是则注册新的变量为=号后面的值
-			std::string name = tk.name;
 			std::string res;
 			tie(tk, res) = parseToken(input);
 			if (tk.type == TokenType::Assign)
@@ -242,11 +296,11 @@ std::tuple<double, std::string> parseFactor(std::string input)
 				//获得的赋予的值的大小
 				tie(result, input) = parseExpression(res);
 				//注册该新变量
-				registVariable(name, result);
+				registVariable(symbol, result);
 				break;
 			}
 			//不是赋值符号 抛出一个未定义类型的错误
-			throw std::runtime_error(name + " is an undefined symbo!\n");
+			throw std::runtime_error(symbol + " is an undefined symbol!\n");
 		}
 		break;
 	default:
@@ -265,8 +319,7 @@ std::tuple<double, std::string> parseFactor(std::string input)
 		input = res;
 	}
 
-
-	return std::make_tuple(result, input);
+	return { result, input };
 }
 
 //解析项
@@ -311,7 +364,7 @@ std::tuple<double, std::string> parseTerm(std::string input)
 		}
 	}
 
-	return std::make_tuple(result, input);
+	return { result, input };
 }
 
 //解析表达式
@@ -343,5 +396,5 @@ std::tuple<double, std::string> parseExpression(std::string input)
 		}
 	}
 
-	return std::make_tuple(result, input);
+	return { result, input };
 }

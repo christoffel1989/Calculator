@@ -13,6 +13,8 @@ CalculatorUI::CalculatorUI(QWidget* parent) : QDialog(parent)
 	m_HasCal = false;
 	m_Text = "0";
 	m_pDisplay = new QLineEdit("0", this);
+	//右对齐
+	m_pDisplay->setAlignment(Qt::AlignRight);
 
 	auto pannel = new QWidget(this);
 	auto gridlayout = new QGridLayout(this);

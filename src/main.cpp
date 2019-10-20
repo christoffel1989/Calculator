@@ -26,26 +26,29 @@ int consoleVersion(int argc, char* argv[])
 		//获取一整行
 		getline(std::cin, input);
 
-		try
+		if (!input.empty())
 		{
-			std::tie(result, res) = parseExpression(input);
-			//如果计算出来的数特别小就看作是0
-			if (abs(result) < 1e-10)
+			try
 			{
-				result = 0;
+				std::tie(result, res) = parseExpression(input);
+				//如果计算出来的数特别小就看作是0
+				if (abs(result) < 1e-10)
+				{
+					result = 0;
+				}
+				if (res == "")
+				{
+					std::cout << "ans = " << result << std::endl;
+				}
+				else if (res != ";")
+				{
+					std::cout << "unexpect symbo ( or )!" << std::endl;
+				}
 			}
-			if (res == "")
+			catch (std::exception& e)
 			{
-				std::cout << "ans = " << result << std::endl;
+				std::cout << e.what();
 			}
-			else if (res != ";")
-			{
-				std::cout << "unexpect symbo ( or )!" << std::endl;
-			}
-		}
-		catch (std::exception& e)
-		{
-			std::cout << e.what();
 		}
 	}
 

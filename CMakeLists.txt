@@ -42,5 +42,8 @@ add_executable(${PROJECT_NAME}
 #lib
 target_link_libraries(${PROJECT_NAME} Qt5::Widgets)
 
+#multi-core compile and use iso c++17
+set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "/MP /std:c++17")
+
 #bin
 SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/bin) 

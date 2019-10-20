@@ -9,6 +9,7 @@
 enum TokenType
 {
 	Number,
+	//symbol的起始为下划线或者字母
 	Symbol,
 	End,
 	Plus = '+',

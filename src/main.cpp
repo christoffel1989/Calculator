@@ -42,7 +42,7 @@ int consoleVersion(int argc, char* argv[])
 				}
 				else if (res != ";")
 				{
-					std::cout << "unexpect symbo ( or )!" << std::endl;
+					std::cout << "error(bad syntax): unexpect symbol " + res + "!" << std::endl;
 				}
 			}
 			catch (std::exception& e)

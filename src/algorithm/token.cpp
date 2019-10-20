@@ -34,7 +34,7 @@ bool tokenInit()
 	{
 		if (val < -1 || val > 1)
 		{
-			throw std::runtime_error("out of asin's domain!");
+			throw std::runtime_error("error(function call): out of asin's domain!\n");
 		}
 		return asin(val); 
 	});
@@ -42,7 +42,7 @@ bool tokenInit()
 	{
 		if (val < -1 || val > 1)
 		{
-			throw std::runtime_error("out of acos's domain!");
+			throw std::runtime_error("error(function call): out of acos's domain!\n");
 		}
 		return acos(val); 
 	});
@@ -50,7 +50,7 @@ bool tokenInit()
 	{
 		if (val <= 0)
 		{
-			throw std::runtime_error("out of ln's domain!");
+			throw std::runtime_error("error(function call): out of ln's domain!\n");
 		}
 		return log(val);
 	});
@@ -58,7 +58,7 @@ bool tokenInit()
 	{
 		if (val <= 0)
 		{
-			throw std::runtime_error("out of log's domain!");
+			throw std::runtime_error("error(function call): out of log's domain!\n");
 		}
 		return log10(val);
 	});
@@ -66,7 +66,7 @@ bool tokenInit()
 	{
 		if (val < 0)
 		{
-			throw std::runtime_error("out of sqrt's domain!");
+			throw std::runtime_error("error(function call): out of sqrt's domain!\n");
 		}
 		return sqrt(val);
 	});
@@ -74,7 +74,7 @@ bool tokenInit()
 	{
 		if (val == 0)
 		{
-			throw std::runtime_error("can not inverse zero!");
+			throw std::runtime_error("error(function call): can not inverse zero!\n");
 		}
 		return 1 / val;
 	});

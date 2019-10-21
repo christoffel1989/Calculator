@@ -4,12 +4,18 @@
 
 #include <stdexcept>
 
-//初始化预设值的符号集合
-bool tokenInit();
+//原始映射表
+std::map<std::string, std::variant<double, std::function<double(double)>>> PrimitiveTable;
+
+//初始化原始符号表
+bool initPrimitiveTable();
+void registPrimitiveSymbol(std::string symbol, std::variant<double, std::function<double(double)>> value);
 //从字符串中解析出第一个数值
 std::tuple<double, std::string> parseNum(std::string input);
 //从字符串中解析出第一个英文单词
 std::tuple<std::string, std::string> parseSymbol(std::string input);
+
+static bool init = initPrimitiveTable();
 
 //定义变长参数模板求一组数的最大和最小值
 //求最大(终止条件)
@@ -44,79 +50,70 @@ auto mySum(Ts... ts)
 	return (... + ts);
 }
 
-//初始化全局环境
-void initGlobalEnvironment(std::shared_ptr<Environment> env)
+bool initPrimitiveTable()
 {
 	//////////////////初始化默认0元函数(即变量)////////////////////////
-	setSymbol("PI", atan(1.0) * 4, env);
-	setSymbol("e", exp(1.0), env);
+	registPrimitiveSymbol("PI", atan(1.0) * 4);
+	registPrimitiveSymbol("e", exp(1.0));
 
 	/////////////////////初始化默认1元函数////////////////////////////
 	//不存在异常的函数
-	setSymbol("sin", [](double val) { return sin(val); }, env);
-	setSymbol("cos", [](double val) { return cos(val); }, env);
-	setSymbol("tan", [](double val) { return tan(val); }, env);
-	setSymbol("atan", [](double val) { return atan(val); }, env);
-	setSymbol("exp", [](double val) { return exp(val); }, env);
+	registPrimitiveSymbol("sin", [](double val) { return sin(val); });
+	registPrimitiveSymbol("cos", [](double val) { return cos(val); });
+	registPrimitiveSymbol("tan", [](double val) { return tan(val); });
+	registPrimitiveSymbol("atan", [](double val) { return atan(val); });
+	registPrimitiveSymbol("exp", [](double val) { return exp(val); });
 	//可能存在异常
-	setSymbol("asin", [](double val)
+	registPrimitiveSymbol("asin", [](double val)
 	{
 		if (val < -1 || val > 1)
 		{
 			throw std::runtime_error("error(function call): out of asin's domain!\n");
 		}
 		return asin(val);
-	}, env);
-	setSymbol("acos", [](double val)
+	});
+	registPrimitiveSymbol("acos", [](double val)
 	{
 		if (val < -1 || val > 1)
 		{
 			throw std::runtime_error("error(function call): out of acos's domain!\n");
 		}
 		return acos(val);
-	}, env);
-	setSymbol("ln", [](double val)
+	});
+	registPrimitiveSymbol("ln", [](double val)
 	{
 		if (val <= 0)
 		{
 			throw std::runtime_error("error(function call): out of ln's domain!\n");
 		}
 		return log(val);
-	}, env);
-	setSymbol("log", [](double val)
+	});
+	registPrimitiveSymbol("log", [](double val)
 	{
 		if (val <= 0)
 		{
 			throw std::runtime_error("error(function call): out of log's domain!\n");
 		}
 		return log10(val);
-	}, env);
-	setSymbol("sqrt", [](double val)
+	});
+	registPrimitiveSymbol("sqrt", [](double val)
 	{
 		if (val < 0)
 		{
 			throw std::runtime_error("error(function call): out of sqrt's domain!\n");
 		}
 		return sqrt(val);
-	}, env);
-	setSymbol("inv", [](double val)
+	});
+	registPrimitiveSymbol("inv", [](double val)
 	{
 		if (val == 0)
 		{
 			throw std::runtime_error("error(function call): can not inverse zero!\n");
 		}
 		return 1 / val;
-	}, env);
+	});
 
-	/////////////////////初始化默认2元函数////////////////////////////
-	setSymbol("max2", [](double val1, double val2) { return myMax(val1, val2); }, env);
-	setSymbol("min2", [](double val1, double val2) { return myMin(val1, val2); }, env);
-	setSymbol("sum2", [](double val1, double val2) { return mySum(val1, val2); }, env);
-
-	/////////////////////初始化默认3元函数////////////////////////////
-	setSymbol("max3", [](double val1, double val2, double val3) { return myMax(val1, val2, val3); }, env);
-	setSymbol("min3", [](double val1, double val2, double val3) { return myMin(val1, val2, val3); }, env);
-	setSymbol("sum3", [](double val1, double val2, double val3) { return mySum(val1, val2, val3); }, env);
+	return true;
 }
 
 std::tuple<double, std::string> parseNum(std::string input)
@@ -243,18 +240,25 @@ std::tuple<Token, std::string> parseToken(std::string input)
 			input.insert(input.begin(), ch);
 			//解析出名字
 			std::tie(tk.value, input) = parseSymbol(input);
+			auto symbol = std::get<std::string>(tk.value);
 			//如果是系统内部定义的关键字
-			if (std::get<std::string>(tk.value) == "var")
+			if (symbol == "var")
 			{
 				tk.type = TokenType::DefVar;
 			}
-			else if (std::get<std::string>(tk.value) == "proc")
+			else if (symbol == "proc")
 			{
 				tk.type = TokenType::DefProc;
 			}
+			//内部提前定义好的符号
+			else if (auto v = getPrimitiveSymbol(symbol))
+			{
+				tk.type = TokenType::PrimitiveSymbol;
+			}
+			//用户自定义符号
 			else
 			{
-				tk.type = TokenType::Symbol;
+				tk.type = TokenType::UserSymbol;
 			}
 		}
 		else
@@ -267,31 +271,26 @@ std::tuple<Token, std::string> parseToken(std::string input)
 	return { tk, input };
 }
 
-void setSymbol(std::string symbol, std::variant<Arg0Fun, Arg1Fun, Arg2Fun, Arg3Fun> value, std::shared_ptr<Environment> env)
+void registPrimitiveSymbol(std::string symbol, std::variant<double, std::function<double(double)>> value)
 {
-	/*//查找
-	auto iter = env->EnvMap.find(symbol);
-	//如果存在
-	if (iter != env->EnvMap.end())
-	{
-		//更新
-		env->EnvMap[symbol] = value;
-	}
-	//如果不存在 则有两种可能
-	else
-	{
-		//情况1 父环境中存在这个符号
-		for (auto parent = env->parent; parent != nullptr; parent = parent->parent)
-		{
-			if (parent->EnvMap.find(symbol) != parent->EnvMap.end())
-			{
-				setSymbol(symbol, value, parent);
-				return;
-			}
-		}
-		//看看父类中
-	}*/
+	PrimitiveTable[symbol] = value;
+}
 
+std::optional<std::variant<double, std::function<double(double)>>> getPrimitiveSymbol(std::string symbol)
+{
+	//查找
+	auto iter = PrimitiveTable.find(symbol);
+
+	if (iter != PrimitiveTable.end())
+	{
+		return { iter->second };
+	}
+	return {};
+}
+
+//将新的变量或函数注册到解释器环境里
+void setEnvSymbol(std::string symbol, UserType value, Environment* env)
+{
 	//先不搞太复杂的
 	//就更新在当前环境 不考虑父环境
 	//更新
@@ -299,7 +298,7 @@ void setSymbol(std::string symbol, std::variant<Arg0Fun, Arg1Fun, Arg2Fun, Arg3F
 }
 
 //获得特定名字的函数的实体
-std::optional<std::variant<Arg0Fun, Arg1Fun, Arg2Fun, Arg3Fun>> getSymbol(std::string symbol, std::shared_ptr<Environment> env)
+std::optional<UserType> getEnvSymbol(std::string symbol, Environment* env)
 {
 	//查找
 	auto iter = env->EnvMap.find(symbol);
@@ -311,7 +310,7 @@ std::optional<std::variant<Arg0Fun, Arg1Fun, Arg2Fun, Arg3Fun>> getSymbol(std::s
 	//如果存在父环境 则继续查询父环境
 	else if (env->parent)
 	{
-		return getSymbol(symbol, env->parent);
+		return getEnvSymbol(symbol, env->parent);
 	}
 	else
 	{

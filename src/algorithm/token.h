@@ -1,9 +1,9 @@
 ﻿#pragma once
 
 #include <string>
+#include <vector>
 #include <variant>
 #include <optional>
-#include <memory>
 #include <map>
 #include <functional>
 
@@ -11,8 +11,9 @@
 enum TokenType
 {
 	Number,
+	PrimitiveSymbol,
 	//symbol的起始为下划线或者字母
-	Symbol,
+	UserSymbol,
 	Plus = '+',
 	Minus = '-',
 	Mul = '*',
@@ -46,31 +47,29 @@ struct Token
 //词法解析
 std::tuple<Token, std::string> parseToken(std::string input);
 
-//定义环境中定义的symbol可能的类型
-//0元函数(即变量)
-using Arg0Fun = double;
-//1元函数
-using Arg1Fun = std::function<double(double)>;
-//2元函数
-using Arg2Fun = std::function<double(double, double)>;
-//3元函数
-using Arg3Fun = std::function<double(double, double, double)>;
+//用户自定义变量或函数
+//是一个元组
+//第一个分量是由输入变量字符串构成的vector
+//第二个分量是本体
+//当输入参量个数为0时 第二分量具体类型是double
+//当输入参量个数大于1时 第二分量具体类型是string 存储了表达式
+using UserType = std::tuple<std::vector<std::string>, std::variant<double, std::string>>;
 
 //环境表存储了一些定义了的符号 以及 他的父环境指针
 struct Environment
 {
 	//环境
-	std::map<std::string, std::variant<Arg0Fun, Arg1Fun, Arg2Fun, Arg3Fun>> EnvMap;
+	//每一个symbol对应
+	std::map<std::string, UserType> EnvMap;
 
 	//指向父类环境的智能指针
-	std::shared_ptr<Environment> parent = nullptr;
+	Environment* parent = nullptr;
 };
 
-//初始化全局环境
-void initGlobalEnvironment(std::shared_ptr<Environment> env);
+std::optional<std::variant<double, std::function<double(double)>>> getPrimitiveSymbol(std::string symbol);
 
 //将新的变量或函数注册到解释器环境里
-void setSymbol(std::string symbol, std::variant<Arg0Fun, Arg1Fun, Arg2Fun, Arg3Fun> value, std::shared_ptr<Environment> env);
+void setEnvSymbol(std::string symbol, UserType value, Environment* env);
 
 //获得特定名字的函数的实体
-std::optional<std::variant<Arg0Fun, Arg1Fun, Arg2Fun, Arg3Fun>> getSymbol(std::string symbol, std::shared_ptr<Environment> env);
+std::optional<UserType> getEnvSymbol(std::string symbol, Environment* env);

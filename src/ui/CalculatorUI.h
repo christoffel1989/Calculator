@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <QDialog>
+#include "token.h"
 
 struct Environment;
 class QLineEdit;
@@ -33,5 +34,5 @@ private:
 	bool m_HasCal;
 	bool m_HasError;
 
-	std::shared_ptr<Environment> m_pEnv;
+	Environment m_Env;
 };

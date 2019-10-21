@@ -5,16 +5,17 @@
 #include <list>
 
 //解析因子
-std::tuple<double, std::string> parseFactor(std::string input, std::shared_ptr<Environment> env);
+std::tuple<double, std::string> parseFactor(std::string input, Environment* env);
 //解析项
-std::tuple<double, std::string> parseTerm(std::string input, std::shared_ptr<Environment> env);
+std::tuple<double, std::string> parseTerm(std::string input, Environment* env);
 
 //解析因子
-std::tuple<double, std::string> parseFactor(std::string input, std::shared_ptr<Environment> env)
+std::tuple<double, std::string> parseFactor(std::string input, Environment*env)
 {
 	using std::tie;
 	double result;
 	std::string symbol;
+	std::variant<double, std::function<double(double)>> primitive;
 	Token tk;
 	tie(tk, input) = parseToken(input);
 
@@ -43,20 +44,61 @@ std::tuple<double, std::string> parseFactor(std::string input, std::shared_ptr<E
 			throw std::runtime_error("error(bad syntax): miss a )!\n");
 		}
 		break;
-	//自定义Symbo
-	case TokenType::Symbol:
+	//Primitive Symbol
+	case TokenType::PrimitiveSymbol:
+		symbol = std::get<std::string>(tk.value);
+		primitive = getPrimitiveSymbol(symbol).value();
+		//如果是变量
+		if (std::holds_alternative<double>(primitive))
+		{
+			result = std::get<double>(primitive);
+		}
+		//如果是1元函数
+		else if (std::holds_alternative<std::function<double(double)>>(primitive))
+		{
+			//解析左括号
+			tie(tk, input) = parseToken(input);
+			if (tk.type != TokenType::Lp)
+			{
+				//报一个错误
+				throw std::runtime_error("error(bad syntax): miss a (!\n");
+			}
+			//解析括号中的函数输入参量
+			double para1;
+			tie(para1, input) = parseExpression(input, env);
+			//解析右括号
+			tie(tk, input) = parseToken(input);
+			if (tk.type != TokenType::Rp)
+			{
+				//报一个错误
+				throw std::runtime_error("error(bad syntax): miss a )!\n");
+			}
+			//计算函数值
+			result = std::get<std::function<double(double)>>(primitive)(para1);
+		}
+		break;
+	//自定义Symbol
+	case TokenType::UserSymbol:
 		symbol = std::get<std::string>(tk.value);
 		//symbol已在环境当中定义
-		if (auto val = getSymbol(symbol, env))
+		if (auto val = getEnvSymbol(symbol, env))
 		{
-			//如果是变量
-			if (std::holds_alternative<Arg0Fun>(val.value()))
+			//解包参数
+			auto[paras, body] = val.value();
+			//获得参数个数
+			auto NPara = paras.size();
+			//当参数个数为0时为变量
+			if (NPara == 0)
 			{
-				result = std::get<Arg0Fun>(val.value());
+				result = std::get<double>(body);
 			}
-			//如果是1元函数
-			else if (std::holds_alternative<Arg1Fun>(val.value()))
+			//参数个数大于0 为函数调用
+			else
 			{
+				//构造一个调用函数新的环境
+				Environment subenv;
+				//他的父亲时env
+				subenv.parent = env;
 				//解析左括号
 				tie(tk, input) = parseToken(input);
 				if (tk.type != TokenType::Lp)
@@ -64,9 +106,25 @@ std::tuple<double, std::string> parseFactor(std::string input, std::shared_ptr<E
 					//报一个错误
 					throw std::runtime_error("error(bad syntax): miss a (!\n");
 				}
-				//解析括号中的函数输入参量
-				double para1;
-				tie(para1, input) = parseExpression(input, env);
+				//解析各个参数
+				for (int i = 0; i < NPara; i++)
+				{
+					//解析括号中的函数输入参量
+					double val;
+					tie(val, input) = parseExpression(input, env);
+					//在subenv中设置第i个para的值为val
+					setEnvSymbol(paras[i], { {}, val }, env);
+					//不是最后一个参量则再解析一个逗号
+					if (i != NPara - 1)
+					{
+						tie(tk, input) = parseToken(input);
+						if (tk.type != TokenType::Comma)
+						{
+							//报一个错误
+							throw std::runtime_error("error(bad syntax): miss a ,!\n");
+						}
+					}
+				}
 				//解析右括号
 				tie(tk, input) = parseToken(input);
 				if (tk.type != TokenType::Rp)
@@ -74,83 +132,10 @@ std::tuple<double, std::string> parseFactor(std::string input, std::shared_ptr<E
 					//报一个错误
 					throw std::runtime_error("error(bad syntax): miss a )!\n");
 				}
-				//计算函数值
-				result = std::get<Arg1Fun>(val.value())(para1);
-			}
-			//如果是2元函数
-			else if (std::holds_alternative<Arg2Fun>(val.value()))
-			{
-				//解析左括号
-				tie(tk, input) = parseToken(input);
-				if (tk.type != TokenType::Lp)
-				{
-					//报一个错误
-					throw std::runtime_error("error(bad syntax): miss a (!\n");
-				}
-				//解析括号中的函数输入参量
-				double para1, para2;
-				//解析第1个输入参量
-				tie(para1, input) = parseExpression(input, env);
-				//解析逗号
-				tie(tk, input) = parseToken(input);
-				if (tk.type != TokenType::Comma)
-				{
-					//报一个错误
-					throw std::runtime_error("error(bad syntax): miss a ,!\n");
-				}
-				//解析第2个输入参量
-				tie(para2, input) = parseExpression(input, env);
-				//解析右括号
-				tie(tk, input) = parseToken(input);
-				if (tk.type != TokenType::Rp)
-				{
-					//报一个错误
-					throw std::runtime_error("error(bad syntax): miss a )!\n");
-				}
-				//计算函数值
-				result = std::get<Arg2Fun>(val.value())(para1, para2);
-			}
-			//如果是3元函数
-			else if (std::holds_alternative<Arg3Fun>(val.value()))
-			{
-				//解析左括号
-				tie(tk, input) = parseToken(input);
-				if (tk.type != TokenType::Lp)
-				{
-					//报一个错误
-					throw std::runtime_error("error(bad syntax): miss a (!\n");
-				}
-				//解析括号中的函数输入参量
-				double para1, para2, para3;
-				//解析第1个输入参量
-				tie(para1, input) = parseExpression(input, env);
-				//解析逗号
-				tie(tk, input) = parseToken(input);
-				if (tk.type != TokenType::Comma)
-				{
-					//报一个错误
-					throw std::runtime_error("error(bad syntax): miss a ,!\n");
-				}
-				//解析第2个输入参量
-				tie(para2, input) = parseExpression(input, env);
-				//解析逗号
-				tie(tk, input) = parseToken(input);
-				if (tk.type != TokenType::Comma)
-				{
-					//报一个错误
-					throw std::runtime_error("error(bad syntax): miss a ,!\n");
-				}
-				//解析第3个输入参量
-				tie(para3, input) = parseExpression(input, env);
-				//解析右括号
-				tie(tk, input) = parseToken(input);
-				if (tk.type != TokenType::Rp)
-				{
-					//报一个错误
-					throw std::runtime_error("error(bad syntax): miss a )!\n");
-				}
-				//计算函数值
-				result = std::get<Arg3Fun>(val.value())(para1, para2, para3);
+
+				//执行函数
+				std::string res;
+				tie(result, res) = parseExpression(std::get<std::string>(body), env);
 			}
 		}
 		//symbol并在环境当中未定义
@@ -180,7 +165,7 @@ std::tuple<double, std::string> parseFactor(std::string input, std::shared_ptr<E
 }
 
 //解析项
-std::tuple<double, std::string> parseTerm(std::string input, std::shared_ptr<Environment> env)
+std::tuple<double, std::string> parseTerm(std::string input, Environment* env)
 {
 	using std::tie;
 	double result, factor;
@@ -225,7 +210,7 @@ std::tuple<double, std::string> parseTerm(std::string input, std::shared_ptr<Env
 }
 
 //解析表达式
-std::tuple<double, std::string> parseExpression(std::string input, std::shared_ptr<Environment> env)
+std::tuple<double, std::string> parseExpression(std::string input, Environment* env)
 {
 	using std::tie;
 	double result, term;
@@ -257,7 +242,7 @@ std::tuple<double, std::string> parseExpression(std::string input, std::shared_p
 }
 
 //解析语句
-std::tuple<double, std::string> parseStatement(std::string input, std::shared_ptr<Environment> env)
+std::tuple<double, std::string> parseStatement(std::string input, Environment* env)
 {
 	double result;
 	//先看第一个字符是什么
@@ -268,7 +253,7 @@ std::tuple<double, std::string> parseStatement(std::string input, std::shared_pt
 		//读取变量名
 		std::tie(tk, input) = parseToken(res);
 		//如果类型不是Symbo则报错
-		if (tk.type != TokenType::Symbol)
+		if (tk.type != TokenType::UserSymbol)
 		{
 			throw std::runtime_error("error(define var): need a symbo for var name!\n");
 		}
@@ -283,7 +268,7 @@ std::tuple<double, std::string> parseStatement(std::string input, std::shared_pt
 		//读取表达式
 		std::tie(result, input) = parseExpression(input, env);
 		//变量值更新
-		setSymbol(symbol, result, env);
+		setEnvSymbol(symbol, { {}, result }, env);
 	}
 	//函数定义
 	else if (tk.type == TokenType::DefProc)
@@ -291,51 +276,64 @@ std::tuple<double, std::string> parseStatement(std::string input, std::shared_pt
 		//读取函数名
 		std::tie(tk, input) = parseToken(res);
 		//如果类型不是Symbo则报错
-		if (tk.type != TokenType::Symbol)
+		if (tk.type != TokenType::UserSymbol)
 		{
 			throw std::runtime_error("error(define proc): need a symbo for proc name!\n");
 		}
 		auto proc = std::get<std::string>(tk.value);
-		//读取输入参量(目前假定只有一个输入参量)
-		std::tie(tk, input) = parseToken(input);
-		//如果类型不是Symbo则报错
-		if (tk.type != TokenType::Symbol)
+
+		//读取左括号
+		tie(tk, input) = parseToken(input);
+		if (tk.type != TokenType::Lp)
 		{
-			throw std::runtime_error("error(define proc): need a symbo for proc para name!\n");
+			//报一个错误
+			throw std::runtime_error("error(define proc): miss a (!\n");
 		}
-		auto para = std::get<std::string>(tk.value);
-		//读取赋值符号
-		std::tie(tk, input) = parseToken(input);
+
+		std::vector<std::string> paras;
+		//读取参量
+		do
+		{
+			std::tie(tk, input) = parseToken(input);
+			//如果类型不是Symbo则报错
+			if (tk.type != TokenType::UserSymbol)
+			{
+				throw std::runtime_error("error(define proc): need a symbo for proc para name!\n");
+			}
+			paras.push_back(std::get<std::string>(tk.value));
+			//再读取一个token
+			std::tie(tk, input) = parseToken(input);
+		}
+		while (tk.type == TokenType::Comma);
+
+		//判断停止while后的符号是不是右括号 如果不是则报错
 		//如果类型不是=号则报错
+		if (tk.type != TokenType::Rp)
+		{
+			throw std::runtime_error("error(define var): miss a )!\n");
+		}
+
+		//读取赋值符号
+		tie(tk, input) = parseToken(input);
 		if (tk.type != TokenType::Assign)
 		{
 			throw std::runtime_error("error(define var): need a =!\n");
 		}
-		//剩下的是根据表达式构建函数添加到env中
-		//首先 创建一个子环境 其父类是env
-		std::shared_ptr<Environment> subenv(new Environment);
-		subenv->parent = env;
-		//方法是定义一个lambda
-		auto fun = [subenv, para, input](double val)
-		{
-			//将para用值val注册到
-			setSymbol(para, val, subenv);
-			//在这个环境下求值
-			auto[v, res] = parseExpression(input, subenv);
-			return v;
-		};
-		//将proc注册为这个一元lambda
-		setSymbol(proc, fun, env);
+
+		//剩下的部分为函数的本体
+		//注册函数到当前env中
+		setEnvSymbol(proc, { paras, input }, env);
+
 		result = 0;
 		//定义函数不需要显示数值
 		input = ";";
 	}
 	//自定义符号
-	else if (tk.type == TokenType::Symbol)
+	else if (tk.type == TokenType::UserSymbol)
 	{
 		auto symbol = std::get<std::string>(tk.value);
 		//如果已经定义了
-		if (auto val = getSymbol(symbol, env))
+		if (auto val = getEnvSymbol(symbol, env))
 		{
 			//读取赋值符号
 			std::tie(tk, res) = parseToken(res);
@@ -345,7 +343,7 @@ std::tuple<double, std::string> parseStatement(std::string input, std::shared_pt
 				//读取表达式
 				std::tie(result, input) = parseExpression(res, env);
 				//变量值更新
-				setSymbol(symbol, result, env);
+				setEnvSymbol(symbol, { {}, result }, env);
 			}
 			//如果不是等号则把连读出的符号一起包括的当作一个表达式解析
 			else

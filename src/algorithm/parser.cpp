@@ -61,7 +61,7 @@ std::tuple<double, std::string> parseFactor(std::string input, Environment*env)
 			if (tk.type != TokenType::Lp)
 			{
 				//报一个错误
-				throw std::runtime_error("error(bad syntax): miss a (!\n");
+				throw std::runtime_error("error(bad syntax): function call miss a (!\n");
 			}
 			//解析括号中的函数输入参量
 			double para1;
@@ -71,7 +71,7 @@ std::tuple<double, std::string> parseFactor(std::string input, Environment*env)
 			if (tk.type != TokenType::Rp)
 			{
 				//报一个错误
-				throw std::runtime_error("error(bad syntax): miss a )!\n");
+				throw std::runtime_error("error(bad syntax): not enough arguments for function call or function call miss a )!\n");
 			}
 			//计算函数值
 			result = std::get<std::function<double(double)>>(primitive)(para1);
@@ -85,16 +85,16 @@ std::tuple<double, std::string> parseFactor(std::string input, Environment*env)
 		{
 			//解包参数
 			auto[paras, body] = val.value();
-			//获得参数个数
-			auto NPara = paras.size();
-			//当参数个数为0时为变量
-			if (NPara == 0)
+			//如果body是值类型则说明为变量
+			if (std::holds_alternative<double>(body))
 			{
 				result = std::get<double>(body);
 			}
-			//参数个数大于0 为函数调用
+			//函数类型
 			else
 			{
+				//获得参数个数
+				auto NPara = paras.size();
 				//构造一个调用函数新的环境
 				Environment subenv;
 				//他的父亲时env
@@ -104,7 +104,7 @@ std::tuple<double, std::string> parseFactor(std::string input, Environment*env)
 				if (tk.type != TokenType::Lp)
 				{
 					//报一个错误
-					throw std::runtime_error("error(bad syntax): miss a (!\n");
+					throw std::runtime_error("error(bad syntax): function call miss a (!\n");
 				}
 				//解析各个参数
 				for (int i = 0; i < NPara; i++)
@@ -121,7 +121,7 @@ std::tuple<double, std::string> parseFactor(std::string input, Environment*env)
 						if (tk.type != TokenType::Comma)
 						{
 							//报一个错误
-							throw std::runtime_error("error(bad syntax): miss a ,!\n");
+							throw std::runtime_error("error(bad syntax): not enough arguments for function call!\n");
 						}
 					}
 				}
@@ -130,7 +130,7 @@ std::tuple<double, std::string> parseFactor(std::string input, Environment*env)
 				if (tk.type != TokenType::Rp)
 				{
 					//报一个错误
-					throw std::runtime_error("error(bad syntax): miss a )!\n");
+					throw std::runtime_error("error(bad syntax): not enough arguments for function call or function call miss a )!\n");
 				}
 
 				//执行函数
@@ -315,9 +315,9 @@ void parseStatement(std::string input, Environment* env)
 
 		std::vector<std::string> paras;
 		//读取参量
-		do
+		std::tie(tk, input) = parseToken(input);
+		while (tk.type == TokenType::Comma)
 		{
-			std::tie(tk, input) = parseToken(input);
 			//如果类型不是Symbo则报错
 			if (tk.type != TokenType::UserSymbol)
 			{
@@ -327,7 +327,6 @@ void parseStatement(std::string input, Environment* env)
 			//再读取一个token
 			std::tie(tk, input) = parseToken(input);
 		}
-		while (tk.type == TokenType::Comma);
 
 		//判断停止while后的符号是不是右括号 如果不是则报错
 		//如果类型不是=号则报错
@@ -346,9 +345,6 @@ void parseStatement(std::string input, Environment* env)
 		//剩下的部分为函数的本体
 		//注册函数到当前env中
 		setEnvSymbol(proc, { paras, input }, env);
-
-		//结果打印输出
-		std::cout << "proc " << proc << " defined complete!" << std::endl;
 	}
 	//自定义符号
 	else if (tk.type == TokenType::UserSymbol)

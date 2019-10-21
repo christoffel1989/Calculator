@@ -313,30 +313,47 @@ void parseStatement(std::string input, Environment* env)
 			throw std::runtime_error("error(define proc): miss a (!\n");
 		}
 
+		//读取函数输入形式参量
 		std::vector<std::string> paras;
-		//读取参量
-		std::tie(tk, input) = parseToken(input);
-		while (tk.type == TokenType::Comma)
-		{
-			//如果类型不是Symbo则报错
-			if (tk.type != TokenType::UserSymbol)
-			{
-				throw std::runtime_error("error(define proc): need a symbo for proc para name!\n");
-			}
-			paras.push_back(std::get<std::string>(tk.value));
-			//再读取一个token
-			std::tie(tk, input) = parseToken(input);
-		}
+		std::string res;
+		std::tie(tk, res) = parseToken(input);
 
-		//判断停止while后的符号是不是右括号 如果不是则报错
-		//如果类型不是=号则报错
-		if (tk.type != TokenType::Rp)
+		//0输入参量
+		if (tk.type == TokenType::Rp)
 		{
-			throw std::runtime_error("error(define var): miss a )!\n");
+			input = res;
+		}
+		//大于等1个输入参量
+		else
+		{
+			do
+			{
+				//读取参量
+				std::tie(tk, input) = parseToken(input);
+
+				//不是用户自定义变量则报错
+				if (tk.type != TokenType::UserSymbol)
+				{
+					throw std::runtime_error("error(define proc): need a symbo for proc para name!\n");
+				}
+
+				//注册信息
+				paras.push_back(std::get<std::string>(tk.value));
+
+				//再读取一个token
+				std::tie(tk, input) = parseToken(input);
+			} while (tk.type == TokenType::Comma);
+
+			//判断停止while后的符号是不是右括号 如果不是则报错
+			if (tk.type != TokenType::Rp)
+			{
+				throw std::runtime_error("error(define var): miss a )!\n");
+			}
 		}
 
 		//读取赋值符号
 		tie(tk, input) = parseToken(input);
+		//如果类型不是=号则报错
 		if (tk.type != TokenType::Assign)
 		{
 			throw std::runtime_error("error(define var): need a =!\n");

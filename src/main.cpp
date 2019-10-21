@@ -24,8 +24,7 @@ int consoleVersion(int argc, char* argv[])
 	std::cout << "Hello! Welcome to use this small calculator!" << std::endl;
 	while (1)
 	{
-		std::string input, res;
-		double result;
+		std::string input;
 		std::cout << ">> ";
 		//获取一整行
 		getline(std::cin, input);
@@ -34,20 +33,7 @@ int consoleVersion(int argc, char* argv[])
 		{
 			try
 			{
-				std::tie(result, res) = parseStatement(input, &GlobalEnv);
-				//如果计算出来的数特别小就看作是0
-				if (abs(result) < 1e-10)
-				{
-					result = 0;
-				}
-				if (res == "")
-				{
-					std::cout << "ans = " << result << std::endl;
-				}
-				else if (res != ";")
-				{
-					std::cout << "error(bad syntax): unexpect symbol " + res + "!" << std::endl;
-				}
+				parseStatement(input, &GlobalEnv);
 			}
 			catch (std::exception& e)
 			{

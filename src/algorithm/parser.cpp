@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-#include <list>
+#include <iostream>
 
 //解析因子
 std::tuple<double, std::string> parseFactor(std::string input, Environment* env);
@@ -238,11 +238,17 @@ std::tuple<double, std::string> parseExpression(std::string input, Environment* 
 		}
 	}
 
+	//如果计算出来的数特别小就看作是0
+	if (abs(result) < 1e-10)
+	{
+		result = 0;
+	}
+
 	return { result, input };
 }
 
 //解析语句
-std::tuple<double, std::string> parseStatement(std::string input, Environment* env)
+void parseStatement(std::string input, Environment* env)
 {
 	double result;
 	//先看第一个字符是什么
@@ -267,12 +273,29 @@ std::tuple<double, std::string> parseStatement(std::string input, Environment* e
 		}
 		//读取表达式
 		std::tie(result, input) = parseExpression(input, env);
+
 		//变量值更新
 		setEnvSymbol(symbol, { {}, result }, env);
+
+		//结果打印输出
+		if (input == "")
+		{
+			std::cout << symbol << " = " << result << std::endl;
+		}
+		else if (input != ";")
+		{
+			std::cout << "error(define var): unexpect symbol " + input + "!" << std::endl;
+		}
 	}
 	//函数定义
 	else if (tk.type == TokenType::DefProc)
 	{
+		//如果最后一个英文字母不是;则报错
+		if (*input.rbegin() != ';')
+		{
+			throw std::runtime_error("error(define proc): miss ; at the end!\n");
+		}
+
 		//读取函数名
 		std::tie(tk, input) = parseToken(res);
 		//如果类型不是Symbo则报错
@@ -324,9 +347,8 @@ std::tuple<double, std::string> parseStatement(std::string input, Environment* e
 		//注册函数到当前env中
 		setEnvSymbol(proc, { paras, input }, env);
 
-		result = 0;
-		//定义函数不需要显示数值
-		input = ";";
+		//结果打印输出
+		std::cout << "proc " << proc << " defined complete!" << std::endl;
 	}
 	//自定义符号
 	else if (tk.type == TokenType::UserSymbol)
@@ -344,12 +366,32 @@ std::tuple<double, std::string> parseStatement(std::string input, Environment* e
 				std::tie(result, input) = parseExpression(res, env);
 				//变量值更新
 				setEnvSymbol(symbol, { {}, result }, env);
+
+				//结果打印输出
+				if (input == "")
+				{
+					std::cout << symbol << " = " << result << std::endl;
+				}
+				else if (input != ";")
+				{
+					std::cout << "error(assignment): unexpect symbol " + input + "!" << std::endl;
+				}
 			}
 			//如果不是等号则把连读出的符号一起包括的当作一个表达式解析
 			else
 			{
 				//还有可能是计算表达式的值
 				std::tie(result, input) = parseExpression(input, env);
+
+				//结果打印输出
+				if (input == "")
+				{
+					std::cout << "ans = " << result << std::endl;
+				}
+				else if (input != ";")
+				{
+					std::cout << "error(arithmetic): unexpect symbol " + input + "!" << std::endl;
+				}
 			}
 		}
 		else
@@ -362,7 +404,15 @@ std::tuple<double, std::string> parseStatement(std::string input, Environment* e
 	{
 		//读取表达式
 		std::tie(result, input) = parseExpression(input, env);
-	}
 
-	return { result, input };
+		//结果打印输出
+		if (input == "")
+		{
+			std::cout << "ans = " << result << std::endl;
+		}
+		else if (input != ";")
+		{
+			std::cout << "error(arithmetic): unexpect symbol " + input + "!" << std::endl;
+		}
+	}
 }

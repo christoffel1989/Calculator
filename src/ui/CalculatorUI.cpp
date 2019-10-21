@@ -5,6 +5,7 @@
 #include <QGridLayout>
 #include <QVBoxLayout>
 
+#include "token.h"
 #include "parser.h"
 
 CalculatorUI::CalculatorUI(QWidget* parent) : QDialog(parent)
@@ -33,6 +34,10 @@ CalculatorUI::CalculatorUI(QWidget* parent) : QDialog(parent)
 	layout->addWidget(m_pDisplay);
 	layout->addWidget(pannel);
 	setLayout(layout);
+
+	//初始化环境
+	m_pEnv.reset(new Environment);
+	initGlobalEnvironment(m_pEnv);
 }
 
 void CalculatorUI::onKeyButtonClicked(int row, int column)
@@ -127,7 +132,7 @@ void CalculatorUI::onKeyButtonClicked(int row, int column)
 			//需要把QString 转换成 std::string
 			double result;
 			std::string res;
-			std::tie(result, res) = parseExpression(m_Text.toLatin1().data());
+			std::tie(result, res) = parseExpression(m_Text.toLatin1().data(), m_pEnv);
 			//存在残渣
 			if (!res.empty())
 			{

@@ -2,6 +2,7 @@
 
 #include <QDialog>
 
+struct Environment;
 class QLineEdit;
 
 class CalculatorUI : public QDialog
@@ -31,4 +32,6 @@ private:
 
 	bool m_HasCal;
 	bool m_HasError;
+
+	std::shared_ptr<Environment> m_pEnv;
 };

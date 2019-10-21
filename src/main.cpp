@@ -4,6 +4,7 @@
 #include "parser.h"
 
 #include <iostream>
+#include <stdexcept>
 
 int guiVersion(int argc, char* argv[])
 {
@@ -17,6 +18,11 @@ int guiVersion(int argc, char* argv[])
 
 int consoleVersion(int argc, char* argv[])
 {
+	//构造全矩环境
+	std::shared_ptr<Environment> GlobalEnv(new Environment);
+	//初始化该环境
+	initGlobalEnvironment(GlobalEnv);
+
 	std::cout << "Hello! Welcome to use this small calculator!" << std::endl;
 	while (1)
 	{
@@ -30,7 +36,7 @@ int consoleVersion(int argc, char* argv[])
 		{
 			try
 			{
-				std::tie(result, res) = parseStatement(input);
+				std::tie(result, res) = parseStatement(input, GlobalEnv);
 				//如果计算出来的数特别小就看作是0
 				if (abs(result) < 1e-10)
 				{

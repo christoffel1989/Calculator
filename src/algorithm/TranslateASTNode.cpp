@@ -1,128 +1,12 @@
 ﻿#include "TranslateASTNode.h"
 
+#include "token.h"
+
 #include <cmath>
 #include <iostream>
 
-//打印语法树
-void printAST(std::shared_ptr<ASTNode> ast, std::shared_ptr<ASTEnvironment> env)
-{
-	//处理根节点
-	//判断根节点的类型
-	auto tk = ast->tk;
-	if (tk.type == TokenType::Number)
-	{
-		std::cout << "|" << std::get<double>(tk.value) << "|";
-	}
-	else if (tk.type == TokenType::PrimitiveSymbol)
-	{
-		std::cout << "|";
-		auto symbol = std::get<std::string>(tk.value);
-		auto primitive = getPrimitiveSymbol(symbol).value();
-		if (std::holds_alternative<std::function<double(double)>>(primitive))
-		{
-			std::cout << "[pcall]";
-		}
-		else
-		{
-			std::cout << "[pval]";
-		}
-		std::cout << std::get<std::string>(tk.value) << "|";
-	}
-	else if (tk.type == TokenType::UserSymbol)
-	{
-		std::cout << "|" << std::get<std::string>(tk.value) << "|";
-	}
-	else if (tk.type == TokenType::DefVar)
-	{
-		std::cout << "|defvar|";
-	}
-	else if (tk.type == TokenType::DefProc)
-	{
-		std::cout << "|defproc|";
-	}
-	else if (tk.type == TokenType::If)
-	{
-		std::cout << "|If|";
-	}
-	else if (tk.type == TokenType::Block)
-	{
-
-	}
-	else
-	{
-		std::cout << char(tk.type);
-	}
-
-	//打印子节点
-	auto& childs = ast->childs;
-
-	if (tk.type == TokenType::Block)
-	{
-		for (auto iter = childs.begin(); iter != childs.end(); iter++)
-		{
-			std::cout << "[";
-			printAST(*iter, ast->env);
-			std::cout << "]" << std::endl;
-		}
-	}
-	else if (tk.type == TokenType::If)
-	{
-		std::string dict[3] = { "condition", "true", "false" };
-		int index = 0;
-		for (auto iter = childs.begin(); iter != childs.end(); iter++)
-		{
-			std::cout << dict[index] << "[";
-			printAST(*iter, ast->env);
-			std::cout << "]" << std::endl;
-			index++;
-		}
-	}
-	else if (tk.type == TokenType::DefVar)
-	{
-		std::string dict[2] = { "[name]", "[body]" };
-		int index = 0;
-		for (auto iter = childs.begin(); iter != childs.end(); iter++)
-		{
-			std::cout << dict[index];
-			printAST(*iter, ast->env);
-			index++;
-		}
-	}
-	else if (tk.type == TokenType::DefProc)
-	{
-		//打印名字 第一个元素
-		auto iter = childs.begin();
-		std::cout << "[name]" << std::get<std::string>((*iter)->tk.value);
-		//迭代器步进1
-		iter++;
-		//获取函数本体
-		auto body = *iter;
-		//打印函数参数
-		int index = 0;
-		//迭代器再步进1
-		iter++;
-		for (; iter != childs.end(); iter++)
-		{
-			std::cout << "[arg" << index << "]" << std::get<std::string>((*iter)->tk.value);
-			index++;
-		}
-		//打印函数体
-		std::cout << std::endl << "[body]";
-		printAST(body, ast->env);
-	}
-	else
-	{
-		for (auto iter = childs.begin(); iter != childs.end(); iter++)
-		{
-			printAST(*iter, ast->env);
-		}
-	}
-}
-
-
-
 //执行语法树
-double executeAST(std::shared_ptr<ASTNode> ast, std::shared_ptr<ASTEnvironment> env)
+double executeAST(std::shared_ptr<ASTNode> ast, ASTEnvironment* env)
 {
 	//观察AST根节点的类型
 	auto tk = ast->tk;
@@ -327,9 +211,9 @@ double executeAST(std::shared_ptr<ASTNode> ast, std::shared_ptr<ASTEnvironment> 
 			else
 			{
 				//构造一个调用函数新的环境
-				auto subenv = std::make_shared<ASTEnvironment>();
+				ASTEnvironment subenv;
 				//他的父亲时env
-				subenv->parent = env;
+				subenv.parent = env;
 
 				//如果形参和实参数量不匹配则报错
 				if (paras.size() != childs.size())
@@ -345,12 +229,12 @@ double executeAST(std::shared_ptr<ASTNode> ast, std::shared_ptr<ASTEnvironment> 
 					//求第i个实参
 					result = executeAST(*iterast, env);
 					//注册第i个实参至subenv中
-					setASTEnvSymbol(*iterpara, { {}, result }, subenv);
+					setASTEnvSymbol(*iterpara, { {}, result }, &subenv);
 					//ast的迭代器步进1
 					iterast++;
 				}
 				//执行body函数(在subenv下)
-				result = executeAST(std::get<std::shared_ptr<ASTNode>>(body), subenv);
+				result = executeAST(std::get<std::shared_ptr<ASTNode>>(body), &subenv);
 			}
 		}
 		else

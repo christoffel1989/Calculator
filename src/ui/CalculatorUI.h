@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include <QDialog>
-#include "token.h"
+#include "Environment.h"
 
 struct Environment;
 class QLineEdit;

@@ -1,9 +1,7 @@
-﻿#include "ASTNode.h"
-
-#include <iostream>
+﻿#include "environment.h"
 
 //将新的变量或函数注册到解释器环境里
-void setASTEnvSymbol(std::string symbol, UserAST value, ASTEnvironment* env)
+void setEnvSymbol(std::string symbol, UserType value, Environment* env)
 {
 	//先不搞太复杂的
 	//就更新在当前环境 不考虑父环境
@@ -12,7 +10,7 @@ void setASTEnvSymbol(std::string symbol, UserAST value, ASTEnvironment* env)
 }
 
 //获得特定名字的函数的实体
-std::optional<UserAST> getASTEnvSymbol(std::string symbol, ASTEnvironment* env)
+std::optional<UserType> getEnvSymbol(std::string symbol, Environment* env)
 {
 	//查找
 	auto iter = env->EnvMap.find(symbol);
@@ -24,7 +22,7 @@ std::optional<UserAST> getASTEnvSymbol(std::string symbol, ASTEnvironment* env)
 	//如果存在父环境 则继续查询父环境
 	else if (env->parent)
 	{
-		return getASTEnvSymbol(symbol, env->parent);
+		return getEnvSymbol(symbol, env->parent);
 	}
 	else
 	{

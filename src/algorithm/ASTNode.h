@@ -4,6 +4,7 @@
 
 #include <tuple>
 #include <list>
+#include <map>
 #include <memory>
 
 //前置声明
@@ -14,9 +15,6 @@ struct ASTNode
 {
 	//节点的词法类型
 	Token tk;
-
-	//环境
-	std::shared_ptr<ASTEnvironment> env;
 
 	//子节点
 	std::list<std::shared_ptr<ASTNode>> childs;
@@ -39,11 +37,11 @@ struct ASTEnvironment
 	std::map<std::string, UserAST> EnvMap;
 
 	//指向父类环境的指针
-	std::shared_ptr<ASTEnvironment> parent = nullptr;
+	ASTEnvironment* parent = nullptr;
 };
 
 //将新的变量或函数注册到解释器环境里
-void setASTEnvSymbol(std::string symbol, UserAST value, std::shared_ptr<ASTEnvironment> env);
+void setASTEnvSymbol(std::string symbol, UserAST value, ASTEnvironment* env);
 
 //获得特定名字的函数的实体
-std::optional<UserAST> getASTEnvSymbol(std::string symbol, std::shared_ptr<ASTEnvironment> env);
+std::optional<UserAST> getASTEnvSymbol(std::string symbol, ASTEnvironment* env);

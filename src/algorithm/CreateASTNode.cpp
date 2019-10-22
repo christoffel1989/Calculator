@@ -1,7 +1,9 @@
 ﻿#include "CreateASTNode.h"
 
+#include "token.h"
+
 //创建因子的语法树节点
-std::tuple<std::shared_ptr<ASTNode>, std::string> createFactorASTNode(std::string input, std::shared_ptr<ASTEnvironment> env)
+std::tuple<std::shared_ptr<ASTNode>, std::string> createFactorASTNode(std::string input)
 {
 	std::shared_ptr<ASTNode> parent;
 
@@ -16,8 +18,6 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createFactorASTNode(std::strin
 		parent = std::make_shared<ASTNode>();
 		//设置父节点token
 		parent->tk = tk;
-		//设置父节点环境
-		parent->env = env;
 	}
 	//符号
 	else if (tk.type == TokenType::Minus)
@@ -26,18 +26,16 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createFactorASTNode(std::strin
 		parent = std::make_shared<ASTNode>();
 		//设置父节点token
 		parent->tk = tk;
-		//设置父节点环境
-		parent->env = env;
 		//创建一个子节点是接下来的一个符号
 		std::shared_ptr<ASTNode> child;
-		std::tie(child, input) = createFactorASTNode(input, env);
+		std::tie(child, input) = createFactorASTNode(input);
 		parent->childs.push_back(child);
 	}
 	//左括号
 	else if (tk.type == TokenType::Lp)
 	{
 		//括号中的表达式
-		tie(parent, input) = createExpressionASTNode(input, env);
+		tie(parent, input) = createExpressionASTNode(input);
 		//解析右括号
 		tie(tk, input) = parseToken(input);
 		//没有右括号则报错
@@ -54,8 +52,6 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createFactorASTNode(std::strin
 		parent = std::make_shared<ASTNode>();
 		//设置父节点token
 		parent->tk = tk;
-		//设置父节点环境
-		parent->env = env;
 
 		//根据symbol的类型设置子节点
 		auto symbol = std::get<std::string>(tk.value);
@@ -72,7 +68,7 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createFactorASTNode(std::strin
 			}
 			//解析括号中的函数输入参量
 			std::shared_ptr<ASTNode> child;
-			std::tie(child, input) = createExpressionASTNode(input, env);
+			std::tie(child, input) = createExpressionASTNode(input);
 			//解析右括号
 			tie(tk, input) = parseToken(input);
 			if (tk.type != TokenType::Rp)
@@ -94,8 +90,6 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createFactorASTNode(std::strin
 		parent = std::make_shared<ASTNode>();
 		//设置父节点token
 		parent->tk = tk;
-		//设置父节点环境
-		parent->env = env;
 
 		//解析下一个字符
 		std::string res1, res2;
@@ -113,7 +107,7 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createFactorASTNode(std::strin
 				{
 					//解析输入参数
 					std::shared_ptr<ASTNode> child;
-					tie(child, input) = createExpressionASTNode(res1, env);
+					tie(child, input) = createExpressionASTNode(res1);
 					parent->childs.push_back(child);
 					//解析逗号(如果不是逗号则循环中断)
 					tie(tk, input) = parseToken(input);
@@ -138,11 +132,11 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createFactorASTNode(std::strin
 }
 
 //创建项的语法树节点
-std::tuple<std::shared_ptr<ASTNode>, std::string> createTermASTNode(std::string input, std::shared_ptr<ASTEnvironment> env)
+std::tuple<std::shared_ptr<ASTNode>, std::string> createTermASTNode(std::string input)
 {
 	std::shared_ptr<ASTNode> parent, child1, child2;
 	//获得第一个项的节点并存储在父节点位置
-	std::tie(parent, input) = createFactorASTNode(input, env);
+	std::tie(parent, input) = createFactorASTNode(input);
 
 	while (true)
 	{
@@ -155,13 +149,11 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createTermASTNode(std::string 
 			//把父节点搬移到子节点1的位置
 			child1 = parent;
 			//获取子节点2
-			std::tie(child2, input) = createFactorASTNode(str, env);
+			std::tie(child2, input) = createFactorASTNode(str);
 			//创建父节点
 			parent = std::make_shared<ASTNode>();
 			//设置父节点token
 			parent->tk = op;
-			//设置父节点环境
-			parent->env = env;
 			//子节点1和2与父节点相连
 			parent->childs.push_back(child1);
 			parent->childs.push_back(child2);
@@ -178,11 +170,11 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createTermASTNode(std::string 
 }
 
 //创建表达式的语法树节点
-std::tuple<std::shared_ptr<ASTNode>, std::string> createExpressionASTNode(std::string input, std::shared_ptr<ASTEnvironment> env)
+std::tuple<std::shared_ptr<ASTNode>, std::string> createExpressionASTNode(std::string input)
 {
 	std::shared_ptr<ASTNode> parent, child1, child2;
 	//获得第一个项的节点并存储在父节点位置
-	std::tie(parent, input) = createTermASTNode(input, env);
+	std::tie(parent, input) = createTermASTNode(input);
 
 	while (true)
 	{
@@ -194,13 +186,11 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createExpressionASTNode(std::s
 			//把父节点搬移到子节点1的位置
 			child1 = parent;
 			//获取子节点2
-			std::tie(child2, input) = createTermASTNode(str, env);
+			std::tie(child2, input) = createTermASTNode(str);
 			//创建父节点
 			parent = std::make_shared<ASTNode>();
 			//设置父节点token
 			parent->tk = op;
-			//设置父节点环境
-			parent->env = env;
 			//子节点1和2与父节点相连
 			parent->childs.push_back(child1);
 			parent->childs.push_back(child2);
@@ -217,7 +207,7 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createExpressionASTNode(std::s
 }
 
 //创建赋值语句的语法树节点
-std::tuple<std::shared_ptr<ASTNode>, std::string> createAssignmentASTNode(std::string input, std::shared_ptr<ASTEnvironment> env)
+std::tuple<std::shared_ptr<ASTNode>, std::string> createAssignmentASTNode(std::string input)
 {
 	//获得前两个token
 	Token tk1, tk2;
@@ -236,15 +226,13 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createAssignmentASTNode(std::s
 	auto parent = std::make_shared<ASTNode>();
 	//结点类型为赋值
 	parent->tk.type = TokenType::Assign;
-	parent->env = env;
 	//创建代表被赋值变量的子节点
 	auto child = std::make_shared<ASTNode>();
 	child->tk = tk1;
-	child->env = env;
 	//child与parent连接
 	parent->childs.push_back(child);
 	//创建代表赋值=号右边表达式的语句
-	std::tie(child, input) = createExpressionASTNode(str, env);
+	std::tie(child, input) = createExpressionASTNode(str);
 	//child与parent连接
 	parent->childs.push_back(child);
 
@@ -252,23 +240,22 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createAssignmentASTNode(std::s
 }
 
 //创建逻辑判断的语法树节点
-std::tuple<std::shared_ptr<ASTNode>, std::string> createLogicASTNode(std::string input, std::shared_ptr<ASTEnvironment> env)
+std::tuple<std::shared_ptr<ASTNode>, std::string> createLogicASTNode(std::string input)
 {
 	std::shared_ptr<ASTNode> child1, child2, parent;
 
 	//读取表达式1
-	std::tie(child1, input) = createExpressionASTNode(input, env);
+	std::tie(child1, input) = createExpressionASTNode(input);
 
 	//读取逻辑运算符号
 	Token tk;
 	std::tie(tk, input) = parseToken(input);
 
 	//读取表达式2
-	std::tie(child2, input) = createExpressionASTNode(input, env);
+	std::tie(child2, input) = createExpressionASTNode(input);
 
 	//构造父节点
 	parent = std::make_shared<ASTNode>();
-	parent->env = env;
 	parent->tk = tk;
 	parent->childs.push_back(child1);
 	parent->childs.push_back(child2);
@@ -277,7 +264,7 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createLogicASTNode(std::string
 }
 
 //创建条件语句的语法树
-std::tuple<std::shared_ptr<ASTNode>, std::string> createConditionASTNode(std::string input, std::shared_ptr<ASTEnvironment> env)
+std::tuple<std::shared_ptr<ASTNode>, std::string> createConditionASTNode(std::string input)
 {
 	//解析第一个tk
 	Token tk;
@@ -293,7 +280,6 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createConditionASTNode(std::st
 	//构建父节点
 	auto parent = std::make_shared<ASTNode>();
 	parent->tk = tk;
-	parent->env = env;
 
 	//读取一个左括号
 	tie(tk, input) = parseToken(input);
@@ -305,7 +291,7 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createConditionASTNode(std::st
 
 	//读取条件
 	decltype(parent) ifcondition;
-	tie(ifcondition, input) = createLogicASTNode(input, env);
+	tie(ifcondition, input) = createLogicASTNode(input);
 
 	//添加为parent的第1个儿子
 	parent->childs.push_back(ifcondition);
@@ -320,7 +306,7 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createConditionASTNode(std::st
 
 	//读取if成立的block
 	decltype(parent) ifblock;
-	tie(ifblock, input) = createBlocksASTNode(input, env);
+	tie(ifblock, input) = createBlocksASTNode(input);
 
 	//添加为parent的第2个儿子
 	parent->childs.push_back(ifblock);
@@ -332,7 +318,7 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createConditionASTNode(std::st
 	if (tk.type == TokenType::Else)
 	{
 		decltype(parent) elseblock;
-		tie(elseblock, input) = createBlocksASTNode(str, env);
+		tie(elseblock, input) = createBlocksASTNode(str);
 		//添加为parent的第3个儿子
 		parent->childs.push_back(elseblock);
 	}
@@ -344,7 +330,7 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createConditionASTNode(std::st
 }
 
 //创建定义变量语句的语法数节点
-std::tuple<std::shared_ptr<ASTNode>, std::string> createDefVarASTNode(std::string input, std::shared_ptr<ASTEnvironment> env)
+std::tuple<std::shared_ptr<ASTNode>, std::string> createDefVarASTNode(std::string input)
 {
 	//获得前三个token
 	Token tk1, tk2, tk3;
@@ -364,15 +350,13 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createDefVarASTNode(std::strin
 	auto parent = std::make_shared<ASTNode>();
 	//结点类型为赋值
 	parent->tk.type = TokenType::DefVar;
-	parent->env = env;
 	//创建代表被赋值变量的子节点
 	auto child = std::make_shared<ASTNode>();
 	child->tk = tk2;
-	child->env = env;
 	//child与parent连接
 	parent->childs.push_back(child);
 	//创建代表赋值=号右边表达式的语句
-	std::tie(child, input) = createExpressionASTNode(str, env);
+	std::tie(child, input) = createExpressionASTNode(str);
 	//child与parent连接
 	parent->childs.push_back(child);
 
@@ -380,7 +364,7 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createDefVarASTNode(std::strin
 }
 
 //创建定义过程的语法树节点
-std::tuple<std::shared_ptr<ASTNode>, std::string> createDefProcASTNode(std::string input, std::shared_ptr<ASTEnvironment> env)
+std::tuple<std::shared_ptr<ASTNode>, std::string> createDefProcASTNode(std::string input)
 {
 	//获得前三个token
 	Token tk1, tk2, tk3;
@@ -439,22 +423,19 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createDefProcASTNode(std::stri
 
 	//构建节点
 	auto parent = std::make_shared<ASTNode>();
-	parent->env = env;
 	parent->tk.type = TokenType::DefProc;
 	//获取并添加函数体
 	decltype(parent) body;
-	std::tie(body, input) = createBlocksASTNode(input, env);
+	std::tie(body, input) = createBlocksASTNode(input);
 	parent->childs.push_back(body);
 	//添加函数名字节点
 	auto procname = std::make_shared<ASTNode>();
-	procname->env = env;
 	procname->tk = tk2;
 	parent->childs.push_back(procname);
 	//添加函数参数
 	for (auto iter = paras.begin(); iter != paras.end(); iter++)
 	{
 		auto para = std::make_shared<ASTNode>();
-		para->env = env;
 		para->tk = *iter;
 		parent->childs.push_back(para);
 	}
@@ -462,7 +443,7 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createDefProcASTNode(std::stri
 }
 
 //创建语句块的语法树
-std::tuple<std::shared_ptr<ASTNode>, std::string> createBlocksASTNode(std::string input, std::shared_ptr<ASTEnvironment> env)
+std::tuple<std::shared_ptr<ASTNode>, std::string> createBlocksASTNode(std::string input)
 {
 	//解析第一个tk
 	Token tk;
@@ -478,12 +459,11 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createBlocksASTNode(std::strin
 
 	auto parent = std::make_shared<ASTNode>();
 	parent->tk.type = TokenType::Block;
-	parent->env = env;
 	//不停的解析语句
 	do
 	{
 		std::shared_ptr<ASTNode> child;
-		std::tie(child, input) = createStatementASTNode(input, env);
+		std::tie(child, input) = createStatementASTNode(input);
 		parent->childs.push_back(child);
 		//再解析一个tk
 		tie(tk, input) = parseToken(input);
@@ -502,7 +482,7 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createBlocksASTNode(std::strin
 }
 
 //创建以;号结尾的一般语句的语法树
-std::tuple<std::shared_ptr<ASTNode>, std::string> createStatementASTNode(std::string input, std::shared_ptr<ASTEnvironment> env)
+std::tuple<std::shared_ptr<ASTNode>, std::string> createStatementASTNode(std::string input)
 {
 	std::shared_ptr<ASTNode> parent;
 
@@ -515,24 +495,24 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createStatementASTNode(std::st
 	if (tk.type == TokenType::DefVar)
 	{
 		//原输入重新用定义变量语句去解析
-		std::tie(parent, input) = createDefVarASTNode(input, env);
+		std::tie(parent, input) = createDefVarASTNode(input);
 	}
 	//定义函数
 	else if (tk.type == TokenType::DefProc)
 	{
-		std::tie(parent, input) = createDefProcASTNode(input, env);
+		std::tie(parent, input) = createDefProcASTNode(input);
 	}
 	//if
 	else if (tk.type == TokenType::If)
 	{
 		//用条件语句的语法解析
-		std::tie(parent, input) = createConditionASTNode(input, env);
+		std::tie(parent, input) = createConditionASTNode(input);
 	}
 	//语句块
 	else if (tk.type == TokenType::LBrace)
 	{
 		//用语句块的语法解析
-		std::tie(parent, input) = createBlocksASTNode(input, env);
+		std::tie(parent, input) = createBlocksASTNode(input);
 	}
 	else
 	{
@@ -545,18 +525,18 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createStatementASTNode(std::st
 			if (tk.type == Assign)
 			{
 				//原输入重新用赋值语句去解析
-				std::tie(parent, input) = createAssignmentASTNode(input, env);
+				std::tie(parent, input) = createAssignmentASTNode(input);
 			}
 			else
 			{
 				//其他情况下用表达式语句解析
-				std::tie(parent, input) = createExpressionASTNode(input, env);
+				std::tie(parent, input) = createExpressionASTNode(input);
 			}
 		}
 		else
 		{
 			//其他情况下用表达式语句解析
-			std::tie(parent, input) = createExpressionASTNode(input, env);
+			std::tie(parent, input) = createExpressionASTNode(input);
 		}
 	}
 

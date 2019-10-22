@@ -51,7 +51,7 @@ int consoleVersion(int argc, char* argv[])
 int consoleASTVersion(int argc, char* argv[])
 {
 	//构造全局环境
-	auto env = std::make_shared<ASTEnvironment>();
+	ASTEnvironment GlobalEnv;
 
 	std::cout << "Hello! Welcome to use this small calculator!" << std::endl;
 	while (1)
@@ -65,8 +65,8 @@ int consoleASTVersion(int argc, char* argv[])
 		{
 			try
 			{
-				auto[ast, res] = createStatementASTNode(input, env);
-				auto result = executeAST(ast, env);
+				auto[ast, res] = createStatementASTNode(input);
+				auto result = executeAST(ast, &GlobalEnv);
 				std::cout << "ans = " << result << std::endl;
 			}
 			catch (std::exception& e)

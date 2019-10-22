@@ -17,8 +17,11 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createAssignmentASTNode(std::s
 //创建逻辑判断的语法树节点
 std::tuple<std::shared_ptr<ASTNode>, std::string> createLogicASTNode(std::string input);
 
-//创建条件语句的语法树
-std::tuple<std::shared_ptr<ASTNode>, std::string> createConditionASTNode(std::string input);
+//创建if语句的语法树
+std::tuple<std::shared_ptr<ASTNode>, std::string> createIfASTNode(std::string input);
+
+//创建elseif语句的语法树
+std::tuple<std::shared_ptr<ASTNode>, std::string> createElseIfASTNode(std::string input);
 
 //创建定义变量语句的语法树节点
 std::tuple<std::shared_ptr<ASTNode>, std::string> createDefVarASTNode(std::string input);

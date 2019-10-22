@@ -38,7 +38,11 @@ enum TokenType
 	DefProc,
 	//条件分支
 	If,
+	ElseIf,
 	Else,
+	//循环
+	For,
+	While,
 	//语句块
 	Block,
 	//错误类型

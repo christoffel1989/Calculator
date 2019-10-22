@@ -172,6 +172,7 @@ double executeAST(std::shared_ptr<ASTNode> ast, ASTEnvironment* env)
 		//注册变量至环境当中
 		setASTEnvSymbol(symbol, { {}, result }, env);
 	}
+	//自定义函数
 	else if (type == TokenType::DefProc)
 	{
 		auto iter = childs.begin();
@@ -251,7 +252,7 @@ double executeAST(std::shared_ptr<ASTNode> ast, ASTEnvironment* env)
 		//如果查不到这个变量则报错
 		if (!getASTEnvSymbol(symbol, env))
 		{
-			throw std::runtime_error("error(assignment): unexpect symbol!\n");
+			throw std::runtime_error("error(assignment): undefine symbol!\n");
 		}
 		iter++;
 		//计算变量定义式值

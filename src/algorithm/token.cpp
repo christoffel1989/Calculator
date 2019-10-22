@@ -5,7 +5,7 @@
 #include <stdexcept>
 
 //原始映射表
-std::map<std::string, std::variant<double, std::function<double(double)>>> PrimitiveTable;
+static std::map<std::string, std::variant<double, std::function<double(double)>>> PrimitiveTable;
 
 //初始化原始符号表
 bool initPrimitiveTable();
@@ -16,39 +16,6 @@ std::tuple<double, std::string> parseNum(std::string input);
 std::tuple<std::string, std::string> parseSymbol(std::string input);
 
 static bool init = initPrimitiveTable();
-
-//定义变长参数模板求一组数的最大和最小值
-//求最大(终止条件)
-template <typename T>
-T myMax(T val1, T val2)
-{
-	return (val1 > val2) ? val1 : val2;
-}
-//求最大(一般条件)
-template <typename T, typename... Args>
-T myMax(T val, Args... args)
-{
-	return myMax(val, myMax(args...));
-}
-//求最小(终止条件)
-template <typename T>
-T myMin(T val1, T val2)
-{
-	return (val1 < val2) ? val1 : val2;
-}
-//求最小(一般条件)
-template <typename T, typename... Args>
-T myMin(T val, Args... args)
-{
-	return myMin(val, myMin(args...));
-}
-
-//用折叠表达式求合
-template <typename ... Ts>
-auto mySum(Ts... ts)
-{
-	return (... + ts);
-}
 
 bool initPrimitiveTable()
 {
@@ -263,6 +230,10 @@ std::tuple<Token, std::string> parseToken(std::string input)
 			else if (symbol == "if")
 			{
 				tk.type = TokenType::If;
+			}
+			else if (symbol == "elseif")
+			{
+				tk.type = TokenType::ElseIf;
 			}
 			else if (symbol == "else")
 			{

@@ -2,6 +2,30 @@
 
 #include "token.h"
 
+//定义一些简化书写的模板
+//一个都不等
+template <typename T>
+bool isnoneof(T t, T arg)
+{
+	return t != arg;
+}
+template <typename T, typename... Ts>
+bool isnoneof(T t, T arg, Ts... args)
+{
+	return (t != arg) && isnoneof(t, args...);
+}
+//等于其中一个
+template <typename T>
+bool isoneof(T t, T arg)
+{
+	return t == arg;
+}
+template <typename T, typename... Ts>
+bool isoneof(T t, T arg, Ts... args)
+{
+	return (t == arg) || isoneof(t, args...);
+}
+
 //创建因子的语法树节点
 std::tuple<std::shared_ptr<ASTNode>, std::string> createFactorASTNode(std::string input)
 {
@@ -143,8 +167,7 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createTermASTNode(std::string 
 		//获取符号
 		auto[op, str] = parseToken(input);
 		//乘号、除号或者阶乘
-
-		if (op.type == TokenType::Mul || op.type == TokenType::Div || op.type == TokenType::Pow)
+		if (isoneof(op.type, TokenType::Mul, TokenType::Div, TokenType::Pow))
 		{
 			//把父节点搬移到子节点1的位置
 			child1 = parent;
@@ -181,7 +204,7 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createExpressionASTNode(std::s
 		//获取符号
 		auto[op, str] = parseToken(input);
 		//加号或者减号
-		if (op.type == TokenType::Plus || op.type == TokenType::Minus)
+		if (isoneof(op.type, TokenType::Plus, TokenType::Minus))
 		{
 			//把父节点搬移到子节点1的位置
 			child1 = parent;
@@ -264,7 +287,7 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createLogicASTNode(std::string
 }
 
 //创建条件语句的语法树
-std::tuple<std::shared_ptr<ASTNode>, std::string> createConditionASTNode(std::string input)
+std::tuple<std::shared_ptr<ASTNode>, std::string> createIfASTNode(std::string input)
 {
 	//解析第一个tk
 	Token tk;
@@ -274,7 +297,7 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createConditionASTNode(std::st
 	if (tk.type != TokenType::If)
 	{
 		//报一个错误
-		throw std::runtime_error("error(bad syntax): !\n");
+		throw std::runtime_error("error(bad syntax): miss keyword if!\n");
 	}
 
 	//构建父节点
@@ -286,7 +309,7 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createConditionASTNode(std::st
 	if (tk.type != TokenType::Lp)
 	{
 		//报一个错误
-		throw std::runtime_error("error(bad syntax): !\n");
+		throw std::runtime_error("error(bad syntax): if condition need a (!\n");
 	}
 
 	//读取条件
@@ -296,12 +319,12 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createConditionASTNode(std::st
 	//添加为parent的第1个儿子
 	parent->childs.push_back(ifcondition);
 
-	//读取一个左括号
+	//读取一个右括号
 	tie(tk, input) = parseToken(input);
 	if (tk.type != TokenType::Rp)
 	{
 		//报一个错误
-		throw std::runtime_error("error(bad syntax): !\n");
+		throw std::runtime_error("error(bad syntax): if condition need a )!\n");
 	}
 
 	//读取if成立的block
@@ -315,7 +338,15 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createConditionASTNode(std::st
 	std::string str;
 	tie(tk, str) = parseToken(input);
 	//如果是else则继续添加else分支的结果
-	if (tk.type == TokenType::Else)
+	//如果是elseif则看作一个新的if递归即可
+	if (tk.type == TokenType::ElseIf)
+	{
+		decltype(parent) elseifnode;
+		tie(elseifnode, input) = createElseIfASTNode(input);
+		//添加为parent的第3个儿子
+		parent->childs.push_back(elseifnode);
+	}
+	else if (tk.type == TokenType::Else)
 	{
 		decltype(parent) elseblock;
 		tie(elseblock, input) = createBlocksASTNode(str);
@@ -323,8 +354,76 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createConditionASTNode(std::st
 		parent->childs.push_back(elseblock);
 	}
 
-	//在前面添加个;
-	input.insert(input.begin(), ';');
+	return { parent, input };
+}
+
+//创建条件语句的语法树
+std::tuple<std::shared_ptr<ASTNode>, std::string> createElseIfASTNode(std::string input)
+{
+	//解析第一个tk
+	Token tk;
+	tie(tk, input) = parseToken(input);
+
+	//如果不是if则报错
+	if (tk.type != TokenType::ElseIf)
+	{
+		//报一个错误
+		throw std::runtime_error("error(bad syntax): miss keyword elseif!\n");
+	}
+
+	//构建父节点
+	auto parent = std::make_shared<ASTNode>();
+	parent->tk.type = TokenType::If;
+
+	//读取一个左括号
+	tie(tk, input) = parseToken(input);
+	if (tk.type != TokenType::Lp)
+	{
+		//报一个错误
+		throw std::runtime_error("error(bad syntax): else if condition need a (!\n");
+	}
+
+	//读取条件
+	decltype(parent) ifcondition;
+	tie(ifcondition, input) = createLogicASTNode(input);
+
+	//添加为parent的第1个儿子
+	parent->childs.push_back(ifcondition);
+
+	//读取一个右括号
+	tie(tk, input) = parseToken(input);
+	if (tk.type != TokenType::Rp)
+	{
+		//报一个错误
+		throw std::runtime_error("error(bad syntax): else if condition need a )!\n");
+	}
+
+	//读取if成立的block
+	decltype(parent) ifblock;
+	tie(ifblock, input) = createBlocksASTNode(input);
+
+	//添加为parent的第2个儿子
+	parent->childs.push_back(ifblock);
+
+	//读取下一个token
+	std::string str;
+	tie(tk, str) = parseToken(input);
+	//如果是else则继续添加else分支的结果
+	//如果是elseif则看作一个新的if递归即可
+	if (tk.type == TokenType::ElseIf)
+	{
+		decltype(parent) elseifnode;
+		tie(elseifnode, input) = createElseIfASTNode(str);
+		//添加为parent的第3个儿子
+		parent->childs.push_back(elseifnode);
+	}
+	else if (tk.type == TokenType::Else)
+	{
+		decltype(parent) elseblock;
+		tie(elseblock, input) = createBlocksASTNode(str);
+		//添加为parent的第3个儿子
+		parent->childs.push_back(elseblock);
+	}
 
 	return { parent, input };
 }
@@ -343,7 +442,7 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createDefVarASTNode(std::strin
 	if (tk1.type != TokenType::DefVar || tk2.type != TokenType::UserSymbol || tk3.type != TokenType::Assign)
 	{
 		//报一个错误
-		throw std::runtime_error("error(Def var): !\n");
+		throw std::runtime_error("error(Def var): illegal syntax for define variable!\n");
 	}
 
 	//创建赋值父节点
@@ -376,7 +475,7 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createDefProcASTNode(std::stri
 	if (tk1.type != TokenType::DefProc || tk2.type != TokenType::UserSymbol || tk3.type != TokenType::Lp)
 	{
 		//报一个错误
-		throw std::runtime_error("error(Def proc): !\n");
+		throw std::runtime_error("error(Def proc): illegal syntax for define pro!\n");
 	}
 
 	//读取函数输入形式参量
@@ -454,7 +553,7 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createBlocksASTNode(std::strin
 	if (tk.type != TokenType::LBrace)
 	{
 		//报一个错误
-		throw std::runtime_error("error(bad syntax): !\n");
+		throw std::runtime_error("error(bad syntax): miss a {!\n");
 	}
 
 	auto parent = std::make_shared<ASTNode>();
@@ -466,15 +565,30 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createBlocksASTNode(std::strin
 		std::tie(child, input) = createStatementASTNode(input);
 		parent->childs.push_back(child);
 		//再解析一个tk
-		tie(tk, input) = parseToken(input);
-		if (tk.type != TokenType::End)
+		tie(tk, str) = parseToken(input);
+		//不是Block、IF、While、For等特殊语句的情况下
+		if (isnoneof(child->tk.type, TokenType::Block, TokenType::If, TokenType::While, TokenType::For))
 		{
-			//结尾不是;语法错误
-			throw std::runtime_error("error(bad syntax): miss ;!\n");
+			if (tk.type != TokenType::End)
+			{
+				//结尾不是;语法错误
+				throw std::runtime_error("error(bad syntax): miss a ;!\n");
+			}
+			else
+			{
+				input = str;
+			}
 		}
 		//再解析一个tk
 		tie(tk, str) = parseToken(input);
 	} while (tk.type != TokenType::RBrace);
+
+	//如果不是右大括号则报错
+	if (tk.type != TokenType::RBrace)
+	{
+		//报一个错误
+		throw std::runtime_error("error(bad syntax): miss a }!\n");
+	}
 
 	input = str;
 
@@ -506,7 +620,7 @@ std::tuple<std::shared_ptr<ASTNode>, std::string> createStatementASTNode(std::st
 	else if (tk.type == TokenType::If)
 	{
 		//用条件语句的语法解析
-		std::tie(parent, input) = createConditionASTNode(input);
+		std::tie(parent, input) = createIfASTNode(input);
 	}
 	//语句块
 	else if (tk.type == TokenType::LBrace)

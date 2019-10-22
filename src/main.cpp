@@ -2,6 +2,9 @@
 
 #include "CalculatorUI.h"
 #include "parser.h"
+#include "ASTNode.h"
+#include "CreateASTNode.h"
+#include "TranslateASTNode.h"
 
 #include <iostream>
 #include <stdexcept>
@@ -45,9 +48,42 @@ int consoleVersion(int argc, char* argv[])
 	return 0;
 }
 
+int consoleASTVersion(int argc, char* argv[])
+{
+	//构造全局环境
+	auto env = std::make_shared<ASTEnvironment>();
+
+	std::cout << "Hello! Welcome to use this small calculator!" << std::endl;
+	while (1)
+	{
+		std::string input;
+		std::cout << ">> ";
+		//获取一整行
+		getline(std::cin, input);
+
+		if (!input.empty())
+		{
+			try
+			{
+				auto[ast, res] = createStatementASTNode(input, env);
+				auto result = executeAST(ast, env);
+				std::cout << "ans = " << result << std::endl;
+			}
+			catch (std::exception& e)
+			{
+				std::cout << e.what();
+			}
+		}
+	}
+
+	return 0;
+}
+
 
 int main(int argc, char* argv[])
 {
 	//return guiVersion(argc, argv);
-	return consoleVersion(argc, argv);
+	//return consoleVersion(argc, argv);
+
+	return consoleASTVersion(argc, argv);
 }

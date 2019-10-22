@@ -1,19 +1,19 @@
 ﻿#pragma once
 
 #include <string>
-#include <vector>
+#include <list>
 #include <variant>
 #include <optional>
 #include <map>
 #include <functional>
 
+#include <memory>
+
 //token类型
 enum TokenType
 {
-	Number,
-	PrimitiveSymbol,
-	//symbol的起始为下划线或者字母
-	UserSymbol,
+	//赋值
+	Assign = '=',
 	Plus = '+',
 	Minus = '-',
 	Mul = '*',
@@ -22,16 +22,32 @@ enum TokenType
 	Fact = '!',
 	Lp = '(',
 	Rp = ')',
+	LBrace = '{',
+	RBrace = '}',
 	Comma = ',',
-	//赋值
-	Assign = '=',
+	End = ';',
+	Less = '<',
+	Great = '>',
+	NotLess,
+	NotGreat,
+	Equal,
+	Number,
+	PrimitiveSymbol,
+	//symbol的起始为下划线或者字母
+	UserSymbol,
 	//定义变量
 	DefVar,
 	//定义函数
 	DefProc,
-	End,
+	//条件分支
+	If,
+	Else,
+	//语句块
+	Block,
 	//错误类型
-	BadType
+	BadType,
+	//空
+	Empty
 };
 
 //含有特定意义的词组
@@ -53,7 +69,7 @@ std::tuple<Token, std::string> parseToken(std::string input);
 //第二个分量是本体
 //当输入参量个数为0时 第二分量具体类型是double
 //当输入参量个数大于1时 第二分量具体类型是string 存储了表达式
-using UserType = std::tuple<std::vector<std::string>, std::variant<double, std::string>>;
+using UserType = std::tuple<std::list<std::string>, std::variant<double, std::string>>;
 
 //环境表存储了一些定义了的符号 以及 他的父环境指针
 struct Environment
@@ -62,7 +78,7 @@ struct Environment
 	//每一个symbol对应
 	std::map<std::string, UserType> EnvMap;
 
-	//指向父类环境的智能指针
+	//指向父类环境的指针
 	Environment* parent = nullptr;
 };
 

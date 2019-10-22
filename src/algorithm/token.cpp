@@ -188,7 +188,6 @@ std::tuple<Token, std::string> parseToken(std::string input)
 {
 	char ch;
 	Token tk;
-	tk.type = TokenType::End;
 
 	//把空格去掉
 	do
@@ -196,7 +195,7 @@ std::tuple<Token, std::string> parseToken(std::string input)
 		//先判断一下是否是空
 		if (input.empty())
 		{
-			tk.type = TokenType::End;
+			tk.type = TokenType::Empty;
 			return { tk, "" };
 		}
 		ch = *input.begin();
@@ -213,9 +212,20 @@ std::tuple<Token, std::string> parseToken(std::string input)
 	case '!':
 	case '(':
 	case ')':
+	case '{':
+	case '}':
 	case ',':
-	case '=':
+	case ';':
 		tk.type = TokenType(ch);
+		break;
+	case '<':
+		tk.type = (*input.begin() != '=') ? TokenType(ch) : TokenType::NotGreat;
+		break;
+	case '>':
+		tk.type = (*input.begin() != '=') ? TokenType(ch) : TokenType::NotLess;
+		break;
+	case '=':
+		tk.type = (*input.begin() != '=') ? TokenType(ch) : TokenType::Equal;
 		break;
 	case '0':
 	case '1':
@@ -250,6 +260,14 @@ std::tuple<Token, std::string> parseToken(std::string input)
 			{
 				tk.type = TokenType::DefProc;
 			}
+			else if (symbol == "if")
+			{
+				tk.type = TokenType::If;
+			}
+			else if (symbol == "else")
+			{
+				tk.type = TokenType::Else;
+			}
 			//内部提前定义好的符号
 			else if (auto v = getPrimitiveSymbol(symbol))
 			{
@@ -266,6 +284,12 @@ std::tuple<Token, std::string> parseToken(std::string input)
 			tk.type = TokenType::BadType;
 		}
 		break;
+	}
+
+	//这三种情况多吃了一个等号需要删掉
+	if (tk.type == TokenType::NotGreat || tk.type == TokenType::NotLess || tk.type == TokenType::Equal)
+	{
+		input.erase(input.begin());
 	}
 
 	return { tk, input };

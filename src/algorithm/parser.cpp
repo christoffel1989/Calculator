@@ -93,8 +93,6 @@ std::tuple<double, std::string> parseFactor(std::string input, Environment*env)
 			//函数类型
 			else
 			{
-				//获得参数个数
-				auto NPara = paras.size();
 				//构造一个调用函数新的环境
 				Environment subenv;
 				//他的父亲时env
@@ -107,15 +105,17 @@ std::tuple<double, std::string> parseFactor(std::string input, Environment*env)
 					throw std::runtime_error("error(bad syntax): function call miss a (!\n");
 				}
 				//解析各个参数
-				for (int i = 0; i < NPara; i++)
+				for (auto iter = paras.begin(); iter != paras.end();)
 				{
 					//解析括号中的函数输入参量
 					double val;
 					tie(val, input) = parseExpression(input, env);
 					//在subenv中设置第i个para的值为val
-					setEnvSymbol(paras[i], { {}, val }, env);
-					//不是最后一个参量则再解析一个逗号
-					if (i != NPara - 1)
+					setEnvSymbol(*iter, { {}, val }, env);
+					//迭代器步进
+					++iter;
+					//如果不是最后一个则解析一个逗号
+					if (iter != paras.end())
 					{
 						tie(tk, input) = parseToken(input);
 						if (tk.type != TokenType::Comma)
@@ -125,6 +125,7 @@ std::tuple<double, std::string> parseFactor(std::string input, Environment*env)
 						}
 					}
 				}
+
 				//解析右括号
 				tie(tk, input) = parseToken(input);
 				if (tk.type != TokenType::Rp)
@@ -314,7 +315,7 @@ void parseStatement(std::string input, Environment* env)
 		}
 
 		//读取函数输入形式参量
-		std::vector<std::string> paras;
+		std::list<std::string> paras;
 		std::string res;
 		std::tie(tk, res) = parseToken(input);
 
